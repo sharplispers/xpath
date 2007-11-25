@@ -115,6 +115,7 @@
 (defgeneric environment-find-function (environment local-name uri))
 (defgeneric environment-validate-variable (environment local-name uri))
 
+
 ;; test environment
 ;;
 ;; (An environment that pretends to know about every namespace, function,
@@ -123,7 +124,9 @@
 (defstruct (test-environment (:include environment)))
 
 (defmethod environment-find-namespace ((environment test-environment) prefix)
-  (concatenate 'string "dummy://" prefix))
+  (if (zerop (length prefix))
+      ""
+      (concatenate 'string "dummy://" prefix)))
 
 (defmethod environment-find-function ((environment test-environment) lname uri)
   #'(lambda (&rest args)
@@ -133,9 +136,3 @@
     ((environment test-environment) lname uri)
   (declare (ignore lname uri))
   t)
-
-
-;; node types
-
-(defun node-type-p (node node-type)
-  (eq (dom:node-type node) node-type))

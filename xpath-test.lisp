@@ -33,7 +33,7 @@
 
 (defun sample-node-set (&optional (xml ""))
   (make-node-set
-   (dom-child-nodes->pipe
+   (xpath-protocol:child-pipe
     (dom:document-element
      (cxml:parse-rod (format nil "<div>~a</div>" xml)
                      (cxml-dom:make-dom-builder))))))
@@ -116,25 +116,26 @@
   (let ((path1 (make-location-path
                 (list (make-location-step :descendant
                                           (node-test-name "a")
-                                          (xf-true))
+                                          nil)
                       (make-location-step :attribute
                                           (node-test-name "href")
-                                          (xf-true)))))
+                                          nil))))
         (path2 (make-location-path
                 (list (make-location-step
                        :child
                        (node-test-name "div")
-                       (xf-true))
+                       nil)
                       (make-location-step
                        :descendant
                        (node-test-principal)
-                       (xf-equal
-                        (xf-location-path
-                         (make-location-path
-                          (list (make-location-step :attribute
-                                                    (node-test-name "class")
-                                                    (xf-true)))))
-                        (xf-value "another")))))))
+                       (list
+			(xf-equal
+			 (xf-location-path
+			  (make-location-path
+			   (list (make-location-step :attribute
+						     (node-test-name "class")
+						     nil))))
+			 (xf-value "another"))))))))
     (assert-equal (list "zzz" "qqq")
                   (force
                    (map-pipe #'dom:node-value
@@ -155,7 +156,7 @@
                 (loop for (expected xpath) on pairs by #'cddr
                       collect `(assert-equal ,expected
                                               (join-xpath-result
-                                               (funcall (compile-xpath ,xpath)
+                                               (funcall (compile-xpath ,xpath (make-test-environment))
                                                         (make-context *sample-xml*))))))))
     (verify-xpath*
      "zzz|||qqq"

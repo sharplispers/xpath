@@ -16,6 +16,7 @@
                           :components
                           ((:file "package")
                            (:file "utils" :depends-on ("package"))
+                           (:file "protocol" :depends-on ("package"))
                            (:file "test" :depends-on ("utils"))
                            (:file "pipes" :depends-on ("utils"))
                            (:file "regex" :depends-on ("utils" "test"))

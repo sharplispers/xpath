@@ -1,34 +1,16 @@
 (in-package :xpath)
 
-(defun get-node-text (node) ;; FIXME: support document and document-fragment
-  (with-output-to-string (s)
-    (labels ((write-text (node)
-	       (let ((value (dom:node-value node)))
-		 (when value (write-string value s))
-                 (unless (dom:attribute-p node) ;; FIXME: verify CDATA sections
-                   (dom:do-node-list (child (dom:child-nodes node))
-                     (cond ((or (dom:element-p child)
-                                (dom:entity-reference-p child))
-                            (write-text child))
-                           ((or (dom:text-node-p child)
-                                (dom:attribute-p child)
-                                (dom:cdata-section-p child))
-                            (write-string (dom:node-value child) s))))))))
-      (write-text node))))
+(defun get-node-text (node)
+  (xpath-protocol:string-value node))
 
 ;; pipe-related
 
-(defun dom-node-list->pipe (node-list &optional (start 0))
-  (if (>= start (dom:length node-list))
+(defun vector->pipe (vector &optional (start 0))
+  (if (>= start (length vector))
       empty-pipe
-      (make-pipe (dom:item node-list start)
-		 (dom-node-list->pipe node-list (1+ start)))))
+      (make-pipe (elt vector start)
+		 (vector->pipe vector (1+ start)))))
 
-(defun dom-child-nodes->pipe (node) (dom-node-list->pipe (dom:child-nodes node)))
-
-(defun dom-attributes->pipe (node)
-  (if (dom:attributes node)
-      (dom-node-list->pipe (dom:attributes node)))) ;; fixme: is this correct? (node map)
 
 ;; some hairy hacks follow that make it easier for me to work with CXML DOM from REPL
 
