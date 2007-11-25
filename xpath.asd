@@ -16,7 +16,7 @@
                           :components
                           ((:file "package")
                            (:file "utils" :depends-on ("package"))
-                           (:file "protocol" :depends-on ("package"))
+                           (:file "protocol" :depends-on ("package" "pipes"))
                            (:file "test" :depends-on ("utils"))
                            (:file "pipes" :depends-on ("utils"))
                            (:file "regex" :depends-on ("utils" "test"))
@@ -27,5 +27,5 @@
                            (:file "node-tests" :depends-on ("utils" "xnum" "pipes" "xml-utils"))
                            (:file "xpath" :depends-on ("axes" "node-tests"))
                            (:file "functions" :depends-on ("xpath"))
-                           (:file "xpath-test" :depends-on ("xpath" "functions"))
+                           (:file "xpath-test" :depends-on ("xpath" "functions" "types" "lexer"))
 			   (:file "lexer" :depends-on ("package"))))))
