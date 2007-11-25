@@ -39,7 +39,7 @@
 ;;;
 ;;;   - Each rule is of the form (regex (&rest arguments) &rest body)
 ;;;     BODY must return token name and value as multiple values, unless
-;;;     body contain only a single keyword, in which case the keyword
+;;;     body contains only a single keyword, in which case the keyword
 ;;;     is used as both token name and value.
 ;;;
 ;;;   - As a special exception, a rule may return as multiple values
@@ -72,7 +72,7 @@
 ;;;     the one named register group that actually matched.
 ;;;
 ;;;   - FIXME: cl-ppcre doesn't look for the longest match, so the rules
-;;;     need to be written so that they check for ambiguous matches manually. 
+;;;     need to be written so that they check for ambiguous matches manually.
 ;;;
 ;;;   - FIXME: Whitespace is currently allowed before and after -every- rule.
 ;;;     Is this correct?
@@ -139,7 +139,6 @@
                              lexer failed at position ~D" pos))
 		    (setf pos total-end)
 		    (loop
-		       for j from 0
 		       for group-number across group-numbers
 		       for (nargs . action) across actions
 		       for start = (elt group-start group-number)
@@ -235,45 +234,34 @@ Expression Lexical Structure
   ("\\)" () :rparen)
   ("\\[" () :lbracket)
   ("\\]" () :rbracket)
-  ("\\.(\\.)?" (2p) (if 2p :two-dots :dot))
+  ("\\.\\." () :two-dots)
   ("\\@" () :at)
   ("\\," () :comma)
   (":(:)?" (2p) (if 2p :colons :colon))
-  ("\\$(?:([\\w-]+):)?([\\w-]+)"
+  ("\\$(?:([\\w-.]+):)?([\\w-.]+)"
    (prefix local-name)
    (values :variable (cons prefix local-name)))
-  (#.(apply #'format nil "([~C-~C~C-~C~C-~C~C-~C~C-~C][\\w-]*)"
+  (#.(apply #'format nil "([^~C-~C~C-~C~C-~C][\\w-.]*)"
 	    ;; some checking to make sure the first character looks at least
 	    ;; a bit like a NCNameStartChar, so that numbers and operators
 	    ;; won't get mistaken for an NCName.
-	    (mapcar #'code-char
-		    '(#x0041 #x005A
-		      #x0061 #x007A
-		      ;; just allow the rest of unicode:
-		      #x00c0 #xd7ff
-		      #xe000 #xfffd
-		      #x10000 #x10ffff)))
+	    (mapcar #'code-char '(#x000 #x40 #x5B #x60 #x7B #xbf)))
    (name)
    (unless (nc-name-p name)
      (error "not an NCName: ~A" name))
-   (if (cl-ppcre:all-matches "\\d+(?:\\.\\d*)?|\\.\\d+" name)
-       (handler-case
-	   (values :number (parse-number:parse-number name))
-	 (org.mapcar.parse-number::invalid-number ()
-	   ;; re-signal this condition, because it's not
-	   ;; a subclass of error
-	   (error "not a well-formed XPath number")))
-       (values :ncname name)))
+   (values :ncname name))
   ("\"([^\"]*)\"" (value) (values :literal value))
   ("'([^']*)'" (value) (values :literal value))
-  ("(\\d+(?:\\.\\d*)?|\\.\\d+)"
-   (value)
-   (values :number (handler-case
-		       (parse-number:parse-number value)
-		     (org.mapcar.parse-number::invalid-number ()
-		       ;; re-signal this condition, because it's not
-		       ;; a subclass of error
-		       (error "not a well-formed XPath number")))))
+  ("(\\d+(?:\\.\\d*)?|(\\.(\\d*)))"
+   (value dot digits)
+   (if (and dot (zerop (length digits)))
+       :dot
+       (values :number (handler-case
+			   (parse-number:parse-number value)
+			 (org.mapcar.parse-number::invalid-number ()
+			   ;; re-signal this condition, because it's not
+			   ;; a subclass of error
+			   (error "not a well-formed XPath number"))))))
   ("/(/)?" (2p) (if 2p :// :/))
   ("\\|" () :pipe)
   ("\\+" () :+)
@@ -318,6 +306,10 @@ Expression Lexical Structure
 		  (setf aname name)
 		  (setf a value)
 		  t)
+		(ersetze!b (name &optional (value name))
+		  (setf bname name)
+		  (setf b value)
+		  t)
 		(match (xa &optional (xb nil xbp) (xc nil xcp))
 		  (and (or (eq xa t) (eq xa aname))
 		       (or (not xbp)
@@ -350,8 +342,9 @@ Expression Lexical Structure
    (ersetze! :axis-name a))
 
   ((and (match :ncname)
-	(cl-ppcre:all-matches "^and|or|mod|div$" a))
-   (ersetze! :operator (intern (string-upcase a) :keyword)))
+	(cl-ppcre:all-matches "^(and|or|mod|div)$" a))
+   (let ((sym (intern (string-upcase a) :keyword)))
+     (ersetze! sym sym)))
 
   ((and (match :ncname :lparen)
 	(cl-ppcre:all-matches "^comment|text|processing-instruction|node$"
@@ -359,16 +352,22 @@ Expression Lexical Structure
    (let ((sym (intern (string-upcase a) :keyword)))
      (if (eq sym :processing-instruction)
 	 (ersetze! :processing-instruction sym)
-	 (ersetze! :node-type sym))))
+	 (ersetze! :node-type-or-function-name a))))
 
   ((match :ncname :lparen)
    (ersetze! :function-name a))
 
-  ((match :operator :star-or-multiply)
-   (ersetze! :star))
+  ((and (match t :star-or-multiply)
+	(find aname '(:at :colons :lparen :lbracket
+		      :div :mod :and :or :multiply
+		      :/ :// :pipe :+ :- := :!= :< :<= :> :>=)))
+   (ersetze!b :star))
+
+  ((match t :star-or-multiply)
+   (ersetze!b :multiply))
 
   ((match :star-or-multiply)
-   (ersetze! :multiply)))
+   (ersetze! :star)))
 
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -385,21 +384,23 @@ Expression Lexical Structure
 ;;; as stated in the spec:
 (yacc:define-parser *xpath-parser*
   (:start-symbol expr)
-  (:terminals (:lparen :rparen :lbrackt :rbracket :two-dots :dot
+  (:terminals (:lparen :rparen :lbracket :rbracket :two-dots :dot
 		       :at :comma :colons :colon :variable
 		       :ncname :literal :number :// :/ :pipe :+
 		       :- := :!= :<= :< :> :>= :star :multiply :ns-name
-		       :qname :axis-name :node-type :function-name))
+		       :qname :axis-name :node-type-or-function-name
+		       :function-name :and :or :mod :div
+		       :processing-instruction))
   #+debug (:print-first-terminals t)
   #+debug (:print-states t)
   #+debug (:print-lookaheads t)
   #+debug (:print-goto-graph t)
-  ;; (:muffle-conflicts (50 0))
+  (:muffle-conflicts (6 0))
 
   ;;;;;;;;;;;; 3.1 ;;;;;;;;;;;;
   ;;
   (expr or-expr)
-  (primary-expr variable-reference
+  (primary-expr (:variable (lambda* (x) `(:variable ,x)))
 		(:lparen expr :rparen
 			 (lambda* (nil var nil) var))
 		:literal
@@ -436,7 +437,7 @@ Expression Lexical Structure
 	abbreviated-step)
   (predicates (predicate)
 	      (predicate predicates))
-  (axis-specifier (axis-name :colons (lambda* (a nil) `(:axis a)))
+  (axis-specifier (:axis-name :colons (lambda* (a nil) `(:axis ,a)))
 		  abbreviated-axis-specifier)
 
   ;;;;;;;;;;;; 2.3 ;;;;;;;;;;;;
@@ -445,12 +446,20 @@ Expression Lexical Structure
    ;; first three cases are for NameTest:
    (:ns-name (lambda* (a) `(:name-test :prefix ,a)))
    (:qname (lambda* (a) `(:name-test :qname ,(car a) ,(cdr a))))
-   (:ncname (lambda* (a) `(:name-test :qname nil ,a)))
+   (:ncname (lambda* (a) `(:name-test :qname ,a)))
+   (operator-actually-ncname
+    (lambda* (a) `(:name-test :qname ,(string-downcase (symbol-name a)))))
    (:star (lambda* (nil) `(:name-test :star)))
-   (node-type :lparen :rparen (lambda* (a nil nil) `(:node-type ,a)))
+   (:node-type-or-function-name
+    :lparen :rparen
+    (lambda* (a nil nil) `(:node-type ,(intern (string-upcase a) :keyword))))
+   (:processing-instruction :lparen :rparen
+			    (lambda* (nil nil nil)
+				     `(:node-type :processing-instruction)))
    (:processing-instruction :lparen :literal :rparen
 			    (lambda* (nil nil a nil)
-				     `(:processing-instruction-node-type ,a))))
+				     `(:processing-instruction-node-test ,a))))
+  (operator-actually-ncname :mod :div :and :or)
 
   ;;;;;;;;;;;; 2.4 ;;;;;;;;;;;;
   ;;
@@ -466,9 +475,9 @@ Expression Lexical Structure
 	(lambda* (nil a) `(:absolute-path (:descendent ,a)))))
   (abbreviated-relative-location-path
    (relative-location-path :// step
-			   (lambda* (nil a) `(:descendent ,a))))
+			   (lambda* (a nil b) `(:descendent ,a ,b))))
   (abbreviated-step (:dot (lambda* (nil) :self))
-		    (:dots (lambda* (nil) :parent)))
+		    (:two-dots (lambda* (nil) :parent)))
   (abbreviated-axis-specifier
    (:at (lambda* (nil) :abbreviated-axis-specifier)))
 
@@ -476,9 +485,17 @@ Expression Lexical Structure
   ;;
   (function-call (:function-name :lparen arguments :rparen
 				 (lambda* (name nil args nil)
-					  `(,name ,@args))))
+					  `(,name ,@args)))
+		 (:node-type-or-function-name :lparen arguments :rparen
+					      (lambda* (name nil args nil)
+						`(,name ,@args)))
+		 (:processing-instruction :lparen arguments :rparen
+					  (lambda* (name nil args nil)
+					    `("processing-instruction"
+					      ,@args))))
 
-  (arguments (expr)
+  (arguments ()
+	     (expr)
 	     (expr :comma arguments
 		   (lambda* (a nil d) (cons a d))))
 
@@ -556,29 +573,49 @@ Expression Lexical Structure
 
 ;;;;
 
-(defun test-lexer (str &optional (fixup t))
-  (let ((fn (xpath-lexer str))
-	(results '()))
-    (when fixup
-      (setf fn (make-fixup-lexer fn)))
+(defun test-lexer (str)
+  (let* ((l '())
+	 (m '())
+	 (g (xpath-lexer str))
+	 (fn (make-fixup-lexer
+	      (lambda ()
+		(multiple-value-bind (a b)
+		    (funcall g)
+		  (push (cons a b) l)
+		  (values a b))))))
     (loop
        (multiple-value-bind (a b) (funcall fn)
 	 (unless a (return))
-	 (push (list a b) results)))
-    (nreverse results)))
+	 (push (cons a b) m)))
+    (setf l (nreverse l))
+    (setf m (nreverse m))
+    (loop
+       for (a . b) = (pop l)
+       for (c . d) = (pop m)
+       while (or a b)
+       do
+	 (format t "~:[*~; ~] ~S~,10T ~S~,30T ~S~,10T ~S~%"
+		 (eq a c) a b c d))))
 
-#+(or)
-(let ((test-cases
-       (with-open-file (s "/home/david/src/lisp/xuriella/XPATH"
-			  :external-format :utf8)
-	 (read s))))
-  (loop
-     for str in test-cases
-     for i from 0
-     do
-       (handler-case
-	   (progn
-	     (test-lexer str)
-	     (format t "~D PASS~%" i))
-	 (error (c)
-	   (format t "~D FAIL: ~A~%" i c)))))
+(defun dribble-tests ()
+  (with-open-file (log "/home/david/src/lisp/xpath/TESTS"
+		       :direction :output
+		       :if-exists :supersede
+		       :external-format :utf8)
+    (let ((test-cases
+	   (with-open-file (s "/home/david/src/lisp/xuriella/XPATH"
+			      :external-format :utf8)
+	     (read s)))
+	  (npass 0))
+      (loop
+	 for str in test-cases
+	 for i from 0
+	 do
+	 (handler-case
+	     (progn
+	       (parse-xpath str)
+	       (incf npass)
+	       (format log "~D PASS~%" i))
+	   (error (c)
+	     (format log "~D FAIL: ~A~%  ~A~%" i str c))))
+      (format log "Passed ~D/~D tests.~%" npass (length test-cases)))))
