@@ -85,10 +85,8 @@
   "lazily map fn over pipe, appending results"
   (if (pipe-empty-p pipe)
       empty-pipe
-      (let ((x (funcall fn (pipe-head pipe))))
-	(make-pipe (pipe-head x)
-		   (append-pipes (pipe-tail x)
-				 (mappend-pipe fn (pipe-tail pipe)))))))
+      (append-pipes (funcall fn (pipe-head pipe))
+		    (mappend-pipe fn (pipe-tail pipe)))))
 
 (defun mappend-pipe-filtering (fn pipe &optional filter-test)
   "Map fn over pipe, delaying all but the first fn call,
