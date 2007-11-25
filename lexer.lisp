@@ -380,6 +380,12 @@ Expression Lexical Structure
 	 (declare (ignorable ,@args))
 	 ,@body))))
 
+(defun make-function-name (x)
+  (cond
+    ((symbolp x) x)
+    ((find #\: x) x)
+    (t (intern (string-upcase x) :keyword))))
+
 ;;; After the fixup phase, we can parse using a cl-yacc parser for the grammar
 ;;; as stated in the spec:
 (yacc:define-parser *xpath-parser*
@@ -489,10 +495,12 @@ Expression Lexical Structure
   ;;
   (function-call (:function-name :lparen arguments :rparen
 				 (lambda* (name nil args nil)
-					  `(,name ,@args)))
+					  `(,(make-function-name name)
+					     ,@args)))
 		 (:node-type-or-function-name :lparen arguments :rparen
 					      (lambda* (name nil args nil)
-						`(,name ,@args)))
+						`(,(make-function-name name)
+						   ,@args)))
 		 (:processing-instruction :lparen arguments :rparen
 					  (lambda* (name nil args nil)
 					    `(:processing-instruction
