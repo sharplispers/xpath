@@ -105,3 +105,18 @@
 				     (mappend-pipe-filtering fn tail filter-test)))
 	    (mappend-pipe-filtering fn tail filter-test)))))
 
+
+(defun subpipe-before (elt pipe &key (test #'eql))
+  (if (pipe-empty-p pipe)
+      pipe
+      (let ((head (pipe-head pipe))
+	    (tail (pipe-tail pipe)))
+	(if (funcall test elt head)
+	    empty-pipe
+	    (make-pipe head (subpipe-before elt tail :test test))))))
+
+(defun subpipe-after (elt pipe &key (test #'eql))
+  (loop
+     for p = pipe then (pipe-tail p)
+     while (and p (not (funcall test (pipe-head p) elt)))
+     finally (return (pipe-tail p))))

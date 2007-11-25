@@ -75,6 +75,10 @@
         (t (or (dom:local-name (pipe-head (pipe-of node-set))) ;; FIXME: dom:local-name may return NIL as attribute name for some reason
                (dom:name (pipe-head (pipe-of node-set)))))))
 
+;; helper function for the | operator, not in the keyword package:
+(define-xpath-function/single-type union node-set (node-set-1 node-set-2)
+  (make-node-set (append-pipes (pipe-of node-set-1) (pipe-of node-set-2))))
+
 ;; TODO: id, name, namespace-uri
 
 ;; string functions

@@ -102,6 +102,39 @@
         (setf size/delayed (funcall size/delayed))
         size/delayed)))
 
+(defgeneric context-variable-value (context local-name uri))
+
+
+;; environment
+;;
+;; (a compilation-time context)
+
+(defstruct environment)
+
+(defgeneric environment-find-namespace (environment prefix))
+(defgeneric environment-find-function (environment local-name uri))
+(defgeneric environment-validate-variable (environment local-name uri))
+
+;; test environment
+;;
+;; (An environment that pretends to know about every namespace, function,
+;; and variable. For use only in parser tests.)
+
+(defstruct (test-environment (:include environment)))
+
+(defmethod environment-find-namespace ((environment test-environment) prefix)
+  (concatenate 'string "dummy://" prefix))
+
+(defmethod environment-find-function ((environment test-environment) lname uri)
+  #'(lambda (&rest args)
+      (error "function ~A, ~A was called with args ~A" lname uri args)))
+
+(defmethod environment-validate-variable
+    ((environment test-environment) lname uri)
+  (declare (ignore lname uri))
+  t)
+
+
 ;; node types
 
 (defun node-type-p (node node-type)

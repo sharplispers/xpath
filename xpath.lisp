@@ -5,22 +5,35 @@
 ;; location path assembly
 
 ;; returns function: node -> pipe
-(defun make-location-step (axis node-test predicate)
+(defun make-location-step (axis node-test predicates)
   (assert (axis-function axis) () "unknown axis: ~s" axis)
-  #'(lambda (node)
-      (let* ((main-pipe (filter-pipe #'(lambda (node)
-                                         (funcall node-test node
-                                                  (axis-principal-node-type axis)))
-                                     (funcall (axis-function axis) node)))
-             (context (make-context nil #'(lambda () (pipe-length main-pipe)) 0)))
-        (filter-pipe #'(lambda (cur-node)
-                         (setf (context-node context) cur-node)
-                         (incf (context-position context))
-                         (let ((pred-result (funcall predicate context)))
-                           (if (xnum-p pred-result)
-                               (= (context-position context) pred-result)
-                               (boolean-value pred-result))))
-                     main-pipe))))
+  (let ((predicate-closure (compile-predicates predicates)))
+    #'(lambda (node)
+	(funcall predicate-closure
+		 (filter-pipe #'(lambda (node)
+				  (funcall node-test node
+					   (axis-principal-node-type axis)))
+			      (funcall (axis-function axis) node))))))
+
+(defun compile-predicates (predicates)
+  (if predicates
+      (let ((predicate (car predicates))
+	    (next (compile-predicates (rest predicates))))
+	#'(lambda (main-pipe)
+	    (let ((context (make-context nil
+					 #'(lambda () (pipe-length main-pipe))
+					 0)))
+	      (funcall next
+		       (filter-pipe
+			#'(lambda (cur-node)
+			    (setf (context-node context) cur-node)
+			    (incf (context-position context))
+			    (let ((pred-result (funcall predicate context)))
+			      (if (xnum-p pred-result)
+				  (= (context-position context) pred-result)
+				  (boolean-value pred-result))))
+			main-pipe)))))
+      #'identity))
 
 ;; returns function: node -> pipe
 (defun make-location-path (steps)
@@ -86,32 +99,112 @@
            #'(lambda (,thunk) (,value-func-name (funcall ,thunk context)))
            ,args ,@body))))
 
-(defun compile-xpath (expr)
+(defun decode-qname (qname environment attributep)
+  (multiple-value-bind (prefix local-name)
+      (cxml::split-qname qname)
+    (values local-name (find-namespace prefix environment attributep))))
+
+(defun find-namespace (prefix environment attributep)
+  (if (or prefix (not attributep))
+      (environment-find-namespace environment prefix)
+      ""))
+
+(defun compile-xpath (expr environment)
   (cond ((atom expr) (xf-value expr))
         ((eq (first expr) :path)
-         (compile-path (rest expr)))
+         (compile-path (rest expr) environment))
+        ((eq (first expr) :filter)
+	 (destructuring-bind (filter predicate &rest steps) (rest expr)
+	   (compile-filter-path filter predicate steps environment)))
+        ((eq (first expr) :variable)
+         (compile-variable (second expr) environment))
         (t
-         (funcall (or (get (first expr) 'xpath-function)
-                      (error "no such function: ~s" expr))
-                  (mapcar #'compile-xpath (rest expr))))))
+         (let ((name (first expr))
+	       (thunks
+		(mapcar #'(lambda (e) (compile-xpath e environment))
+			(rest expr))))
+	   (etypecase name
+	     (symbol
+	      (funcall (or (get name 'xpath-function)
+			   (error "no such function: ~s" expr))
+		       thunks))
+	     (string
+	      (multiple-value-bind (local-name uri)
+		  (decode-qname name environment nil)
+		(let ((fun (environment-find-function environment
+						      local-name
+						      uri)))
+		  #'(lambda (context)
+		      (apply fun (mapcar (lambda (thunk)
+					   (funcall thunk context))
+					 thunks)))))))))))
 
-(defun compile-node-test (node-test)
-  (if (stringp node-test)
-      (node-test-name node-test)
-      (case node-test
-        (* (node-test-principal))
-        (:node (node-test-node))
-        (:text (node-test-text-node))
-        (:processing-instruction (node-test-processing-instruction))
-        (:comment (node-test-comment)))))
+(defun compile-variable (name environment)
+  (multiple-value-bind (local-name uri)
+      (decode-qname name environment nil)
+    (unless (environment-validate-variable environment local-name uri)
+      (error "undeclared variable: ~A in namespace ~A" local-name uri))
+    (lambda (context)
+      (context-variable-value context local-name uri))))
 
-(defun compile-location-step (step-spec)
-  (destructuring-bind (axis node-test &optional predicate) step-spec
+(defun compile-node-test (node-test environment attributep)
+  (etypecase node-test
+    (string
+     (multiple-value-bind (local-name uri)
+	 (decode-qname node-test environment attributep)
+       (node-test-name local-name uri)))
+    (list
+     (ecase (first node-test)
+       (:processing-instruction
+	(node-test-processing-instruction (second node-test)))
+       (:namespace
+	(let* ((prefix (second node-test))
+	       (uri (find-namespace prefix environment attributep)))
+	  (node-test-namespace uri)))
+       (:qname
+	;; This case is just an alternative to the string case for the
+	;; convenience of callers that have a split name already.
+	(destructuring-bind (prefix local-name) (rest node-test)
+	  (let ((uri (find-namespace prefix environment attributep)))
+	    (node-test-name local-name uri))))))
+    (t
+     (case node-test
+       (* (node-test-principal))
+       (:node (node-test-node))
+       (:text (node-test-text-node))
+       (:processing-instruction (node-test-processing-instruction))
+       (:comment (node-test-comment))))))
+
+(defun compile-location-step (step-spec environment)
+  (destructuring-bind (axis node-test &rest predicates) step-spec
       (make-location-step axis
-                          (compile-node-test node-test)
-                          (if predicate (compile-xpath predicate) (xf-true)))))
+                          (compile-node-test node-test
+					     environment
+					     (eq axis :attribute))
+                          (mapcar #'(lambda (p) (compile-xpath p environment))
+				  predicates))))
 
-(defun compile-path (path)
+(defun compile-path (path environment)
   (xf-location-path
    (make-location-path
-    (mapcar #'compile-location-step path))))
+    (mapcar #'(lambda (step) (compile-location-step step environment)) path))))
+
+;; like compile-path, but with an initial node set that is computed by
+;; a user expression `filter' rather than as the current node 
+(defun compile-filter-path (filter predicate path environment)
+  (let* ((filter-thunk (compile-xpath filter environment))
+	 (predicate-thunk (compile-predicates (list predicate)))
+	 (steps (mapcar #'(lambda (step)
+			    (compile-location-step step environment))
+			path))
+	 (path-thunk (when steps
+		       (make-location-path steps))))
+    #'(lambda (context)
+	(make-node-set
+	 (force
+	  (let* ((initial-node-set (funcall filter-thunk context))
+		 (good-nodes (funcall predicate-thunk
+				      (pipe-of initial-node-set))))
+	    (if path-thunk
+		(mappend-pipe path-thunk good-nodes)
+		good-nodes)))))))

@@ -238,9 +238,9 @@ Expression Lexical Structure
   ("\\@" () :at)
   ("\\," () :comma)
   (":(:)?" (2p) (if 2p :colons :colon))
-  ("\\$(?:([\\w-.]+):)?([\\w-.]+)"
-   (prefix local-name)
-   (values :variable (cons prefix local-name)))
+  ("\\$((?:(?:[\\w-.]+):)?(?:[\\w-.]+))"
+   (qname)
+   (values :variable qname))
   (#.(apply #'format nil "([^~C-~C~C-~C~C-~C][\\w-.]*)"
 	    ;; some checking to make sure the first character looks at least
 	    ;; a bit like a NCNameStartChar, so that numbers and operators
@@ -395,7 +395,7 @@ Expression Lexical Structure
   #+debug (:print-states t)
   #+debug (:print-lookaheads t)
   #+debug (:print-goto-graph t)
-  (:muffle-conflicts (6 0))
+  (:muffle-conflicts (7 0))
 
   ;;;;;;;;;;;; 3.1 ;;;;;;;;;;;;
   ;;
@@ -413,73 +413,77 @@ Expression Lexical Structure
 		 absolute-location-path)
 
   (absolute-location-path (:/
-			   (lambda* (nil) `(:absolute-path)))
+			   (lambda* (nil) `(:path (:root :node))))
 			  (:/ relative-location-path
-			      (lambda* (nil a) `(:absolute-path ,a)))
+			      (lambda* (nil a) `(:path (:root :node) ,@(cdr a))))
 			  abbreviated-absolute-location-path)
 
   (relative-location-path
-   step
+   (step (lambda* (a) `(:path ,a)))
    (relative-location-path :/ step
-			   (lambda* (a nil b) `(:path ,a ,b)))
+			   (lambda* (a nil b) `(:path ,@(cdr a) ,b)))
    abbreviated-relative-location-path)
 
   ;;;;;;;;;;;; 2.1 ;;;;;;;;;;;;
   ;;
   (step (axis-specifier node-test predicates
-			(lambda* (a b c) `(:step ,a ,b ,c)))
+			(lambda* (a b c)
+			  `(,(intern (string-upcase a) :keyword) ,b ,@c)))
 	(axis-specifier node-test
-			(lambda* (a b) `(:step ,a ,b nil)))
+			(lambda* (a b)
+			  `(,(intern (string-upcase a) :keyword) ,b)))
 	;; now the first two cases again without axis, because of the ? in
 	;;   node-test => abbreviated-axis-specifier => '@'?
-	(node-test predicates (lambda* (b c) `(:step nil ,b ,c)))
-	(node-test (lambda* (b) `(:step nil ,b nil)))
+	(node-test predicates (lambda* (b c) `(:child ,b ,@c)))
+	(node-test (lambda* (b) `(:child ,b)))
 	abbreviated-step)
   (predicates (predicate)
-	      (predicate predicates))
-  (axis-specifier (:axis-name :colons (lambda* (a nil) `(:axis ,a)))
+	      (predicate predicates (lambda* (a b) (cons a b))))
+  (axis-specifier (:axis-name :colons (lambda* (a nil) a))
 		  abbreviated-axis-specifier)
 
   ;;;;;;;;;;;; 2.3 ;;;;;;;;;;;;
   ;;
   (node-test
    ;; first three cases are for NameTest:
-   (:ns-name (lambda* (a) `(:name-test :prefix ,a)))
-   (:qname (lambda* (a) `(:name-test :qname ,(car a) ,(cdr a))))
-   (:ncname (lambda* (a) `(:name-test :qname ,a)))
+   :ns-name
+   (:qname (lambda* (a) `(:qname ,(car a) ,(cdr a))))
+   :ncname
    (operator-actually-ncname
-    (lambda* (a) `(:name-test :qname ,(string-downcase (symbol-name a)))))
-   (:star (lambda* (nil) `(:name-test :star)))
+    (lambda* (a) (string-downcase (symbol-name a))))
+   (:star (lambda* (nil) '*))
    (:node-type-or-function-name
     :lparen :rparen
-    (lambda* (a nil nil) `(:node-type ,(intern (string-upcase a) :keyword))))
+    (lambda* (a nil nil) (intern (string-upcase a) :keyword)))
    (:processing-instruction :lparen :rparen
 			    (lambda* (nil nil nil)
-				     `(:node-type :processing-instruction)))
+			      :processing-instruction))
    (:processing-instruction :lparen :literal :rparen
 			    (lambda* (nil nil a nil)
-				     `(:processing-instruction-node-test ,a))))
+				     `(:processing-instruction ,a))))
   (operator-actually-ncname :mod :div :and :or)
 
   ;;;;;;;;;;;; 2.4 ;;;;;;;;;;;;
   ;;
   (predicate (:lbracket predicate-expr :rbracket
-			(lambda* (nil a nil)
-				 `(:predicate ,a))))
+			(lambda* (nil a nil) a)))
   (predicate-expr expr)
 
   ;;;;;;;;;;;; 2.5 ;;;;;;;;;;;;
   ;;
   (abbreviated-absolute-location-path
    (:// relative-location-path
-	(lambda* (nil a) `(:absolute-path (:descendent ,a)))))
+	(lambda* (nil a) `(:path (:root :node)
+				 (:descendant-or-self :node)
+				 ,@(cdr a)))))
   (abbreviated-relative-location-path
    (relative-location-path :// step
-			   (lambda* (a nil b) `(:descendent ,a ,b))))
-  (abbreviated-step (:dot (lambda* (nil) :self))
-		    (:two-dots (lambda* (nil) :parent)))
+			   (lambda* (a nil b)
+			     (append a `((:descendant-or-self :node) ,b)))))
+  (abbreviated-step (:dot (lambda* (nil) '(:self :node)))
+		    (:two-dots (lambda* (nil) '(:parent :node))))
   (abbreviated-axis-specifier
-   (:at (lambda* (nil) :abbreviated-axis-specifier)))
+   (:at (lambda* (nil) :attribute)))
 
   ;;;;;;;;;;;; 3.2 ;;;;;;;;;;;;
   ;;
@@ -491,7 +495,7 @@ Expression Lexical Structure
 						`(,name ,@args)))
 		 (:processing-instruction :lparen arguments :rparen
 					  (lambda* (name nil args nil)
-					    `("processing-instruction"
+					    `(:processing-instruction
 					      ,@args))))
 
   (arguments ()
@@ -503,16 +507,27 @@ Expression Lexical Structure
   ;;
   (union-expr path-expr
 	      (union-expr :pipe path-expr
-			  (lambda* (a nil d) `(:union ,a ,@d))))
+			  (lambda* (a nil d) `(union ,a ,d))))
 
   (path-expr location-path
-	     filter-expr
+	     (filter-expr
+	      ;; FIXME: is this right?
+	      (lambda* (a)
+		(destructuring-bind (expr predicate) (cdr a)
+		  (if (eq predicate t)
+		      expr
+		      a))))
 	     (filter-expr :/ relative-location-path
-			  (lambda* (a nil d) `(:path ,a ,@d)))
+			  (lambda* (a nil d)
+			    `(:filter ,@(cdr a) ,@(cdr d))))
 	     (filter-expr :// relative-location-path
-			  (lambda* (a nil d) `(:descendant ,a ,@d))))
+			  (lambda* (a nil d)
+			    `(:filter ,@(cdr a)
+				      (:descendant-or-self :node)
+				      ,@(cdr d)))))
 
-  (filter-expr primary-expr
+  (filter-expr (primary-expr
+		(lambda (a) `(:filter ,a t)))
 	       (filter-expr predicate
 			    (lambda* (a b) `(:filter ,a ,b))))
 
@@ -555,7 +570,7 @@ Expression Lexical Structure
    (multiplicative-expr :multiply unary-expr
 			(lambda* (a op b) `(* ,a ,b)))
    (multiplicative-expr :div unary-expr
-			(lambda* (a nil b) `(div ,a ,b)))
+			(lambda* (a nil b) `(/ ,a ,b)))
    (multiplicative-expr :mod unary-expr
 			(lambda* (a nil b) `(mod ,a ,b))))
 
@@ -606,16 +621,21 @@ Expression Lexical Structure
 	   (with-open-file (s "/home/david/src/lisp/xuriella/XPATH"
 			      :external-format :utf8)
 	     (read s)))
-	  (npass 0))
+	  (npass 0)
+	  (env (make-test-environment)))
       (loop
 	 for str in test-cases
 	 for i from 0
 	 do
-	 (handler-case
-	     (progn
-	       (parse-xpath str)
-	       (incf npass)
-	       (format log "~D PASS~%" i))
-	   (error (c)
-	     (format log "~D FAIL: ~A~%  ~A~%" i str c))))
+	   (handler-case
+	       (let ((form (parse-xpath str)))
+		 (handler-case
+		     (progn
+		       (compile-xpath form env)
+		       (incf npass)
+		       (format log "~D PASS~%" i))
+		   (error (c)
+		     (format log "~D FAIL (compile): ~A~%  ~A~%" i str c))))
+	     (error (c)
+	       (format log "~D FAIL (parse): ~A~%  ~A~%" i str c))))
       (format log "Passed ~D/~D tests.~%" npass (length test-cases)))))
