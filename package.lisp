@@ -24,6 +24,12 @@
 	   #:boolean-value
 	   #:string-value
 
+	   #:evaluate
+	   #:xpath
+	   #:first-node
+	   #:all-nodes
+	   #:node-set
+
 	   #:environment-find-namespace
 	   #:environment-validate-variable
 

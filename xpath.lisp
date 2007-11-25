@@ -106,7 +106,8 @@
 
 (defun find-namespace (prefix environment attributep)
   (if (or prefix (not attributep))
-      (environment-find-namespace environment prefix)
+      (or (environment-find-namespace environment prefix)
+	  (error "undeclared namespace: ~A" prefix))
       ""))
 
 (defun compile-xpath (expr environment)
@@ -208,3 +209,51 @@
 	    (if path-thunk
 		(mappend-pipe path-thunk good-nodes)
 		good-nodes)))))))
+
+;; public evaluation API
+
+(defun first-node (node-set)
+  (pipe-head (pipe-of node-set)))
+
+(defun all-nodes (node-set)
+  (force (pipe-of node-set)))
+
+(defmacro xpath (form)
+  `(list 'xpath ',form))
+
+(defun evaluate (xpath context)
+  (when (typep xpath 'string)
+    (setf xpath (list 'xpath (parse-xpath xpath))))
+  (when (listp xpath)
+    (unless (and (consp xpath) (eq (car xpath) 'xpath) (null (cddr xpath)))
+      (error "invalid xpath designator: ~A" xpath))
+    (setf xpath (compile-xpath (second xpath)
+			       (make-lexical-environment
+				*lexical-namespaces*))))
+  (unless (functionp xpath)
+    (error "invalid xpath designator: ~A" xpath))
+  (unless (typep context 'context)
+    ;; FIXME: Should this perhaps compute position and size based on 
+    ;; the node's siblings instead?
+    (setf context (make-context context)))
+  (funcall xpath context))
+
+(define-compiler-macro evaluate (&whole whole &environment env xpath context)
+  (let ((namespaces (macroexpand '(lexical-namespaces) env)))
+    (unless namespaces
+      (error "EVALUATE used outside of with-namespaces"))
+    (if (or (and (stringp xpath)
+		 (not (functionp xpath)))
+	    (and (consp xpath) (eq (car xpath) 'xpath)))
+	(let ((y (if (typep xpath 'string)
+		     (list 'xpath (parse-xpath xpath))
+		     xpath)))
+	  (unless (and (consp y)
+		       (eq (car y) 'xpath)
+		       (null (cddr y)))
+	    (error "invalid xpath designator: ~A" y))
+	  `(evaluate (load-time-value
+		      (compile-xpath ',(second y)
+				     (make-lexical-environment ',namespaces)))
+		     ,context))
+	whole)))

@@ -4,6 +4,11 @@
 
 (defun node-test-name (local-name &optional (uri ""))
   #'(lambda (node principal-node-type)
+      #+nil
+      (format t "node ~s principal-node-type ~s name ~s uri ~s~%"
+	      node principal-node-type
+	      local-name
+	      uri)
       (and (xpath-protocol:node-type-p node principal-node-type)
 	   (string= (xpath-protocol:namespace-uri node) uri)
 	   (string= (xpath-protocol:local-name node) local-name))))

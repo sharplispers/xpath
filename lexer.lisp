@@ -452,7 +452,7 @@ Expression Lexical Structure
   ;;
   (node-test
    ;; first three cases are for NameTest:
-   :ns-name
+   (:ns-name (lambda* (a) `(:namespace ,a)))
    (:qname (lambda* (a) `(:qname ,(car a) ,(cdr a))))
    :ncname
    (operator-actually-ncname

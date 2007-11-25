@@ -10,6 +10,12 @@
 (defclass node-set ()
   ((pipe :accessor pipe-of :initform empty-pipe :initarg :pipe)))
 
+(defmethod print-object ((object node-set) stream)
+  (print-unreadable-object (object stream :type t :identity t)
+    (if (pipe-of object)
+	(format stream "~A, ~_..." (pipe-head (pipe-of object)))
+	(write-string "empty" stream))))
+
 (defun node-set-p (object) (typep object 'node-set))
 
 (defun make-node-set (pipe) (make-instance 'node-set :pipe pipe))
@@ -114,6 +120,53 @@
 (defgeneric environment-find-namespace (environment prefix))
 (defgeneric environment-find-function (environment local-name uri))
 (defgeneric environment-validate-variable (environment local-name uri))
+
+
+;; lexical environment
+;;
+;; The environment used automatically by our compiler-macros, and that
+;; knows about namespaces declared locally using WITH-NAMESPACES.
+
+(defstruct (lexical-environment
+	     (:include environment)
+	     (:constructor make-lexical-environment (namespaces)))
+  namespaces)
+
+(defmethod environment-find-namespace
+    ((environment lexical-environment) prefix)
+  (cdr (assoc prefix (lexical-environment-namespaces environment)
+	      :test 'equal)))
+
+;;; (defmethod environment-find-function ((environment lexical-environment) lname uri)
+;;;   )
+
+;;; (defmethod environment-validate-variable
+;;;     ((environment lexical-environment) lname uri)
+;;;   (declare (ignore lname uri))
+;;;   )
+
+(defparameter *initial-namespaces*
+  '((nil . "")
+    ("xmlns" . #"http://www.w3.org/2000/xmlns/")
+    ("xml" . #"http://www.w3.org/XML/1998/namespace")))
+
+(defparameter *lexical-namespaces* nil)
+
+(defmacro lexical-namespaces () nil)
+
+(defmacro with-namespaces ((&rest bindings) &body body &environment env)
+  (let ((conses
+	 (append (loop
+		    for (prefix uri) in bindings
+		    do
+		      (check-type prefix string)
+		      (check-type uri string)
+		    collect (cons prefix uri))
+		 (or (macroexpand '(lexical-namespaces) env)
+		     *initial-namespaces*))))
+    `(let ((*lexical-namespaces* ',conses))
+       (macrolet ((lexical-namespaces () ',conses))
+	 ,@body))))
 
 
 ;; test environment

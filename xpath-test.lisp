@@ -25,6 +25,23 @@
     "</div>")
    (cxml-dom:make-dom-builder)))
 
+(defparameter *sample-xml-2*
+  (cxml:parse-rod
+   (concat 
+    "<div class='something' xmlns:special='http://special'>"
+    "<special:a href='zzz'>"
+    "<span class='sample'>val1</span>"
+    "val2"
+    "</special:a>"
+    "<a href='qqq' id='a2'>"
+    "<span class='sample'>val3</span>"
+    "<span><br/></span>"
+    "</a>"
+    "<special:span class='another'>another-value</special:span>"
+    "<span class='yetanother' id='s5'>42<hr/></span>"
+    "</div>")
+   (cxml-dom:make-dom-builder)))
+
 (defun join-xpath-result (result)
   (if (node-set-p result)
       (format nil "~{~a~^|||~}"
@@ -252,3 +269,31 @@
      '(:path (:descendant * (> (:path (:self *)) 41)))
      "42"
      '(* 2 (+ (- 100 90) 11)))))
+
+(deftest test-with-namespaces-1
+  (with-namespaces (("" ""))
+    (eq (first-node (evaluate "/div" *sample-xml*))
+	(dom:document-element *sample-xml*))))
+
+(deftest test-with-namespaces-2
+  (with-namespaces (("foo" "http://special"))
+    (eql 1 (length (all-nodes (evaluate "//foo:a" *sample-xml-2*))))))
+
+(deftest test-with-namespaces-3
+  (with-namespaces (("foo" "http://special"))
+    (eql 2 (length (all-nodes (evaluate "//foo:*" *sample-xml-2*))))))
+
+(with-namespaces (("foo" "http://special"))
+  (deftest test-with-namespaces-4
+    (eql 2 (length (all-nodes (evaluate "//foo:*" *sample-xml-2*))))))
+
+(deftest test-with-namespaces-5
+  (handler-case
+      (funcall (compile nil
+			`(lambda ()
+			   (with-namespaces (("foo" "http://special"))
+			     (evaluate "//bar:*" *sample-xml-2*)))))
+    (error ()
+      t)
+    (:no-error (x)
+      (error "test failed with return value ~A" x))))
