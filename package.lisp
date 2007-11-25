@@ -24,6 +24,7 @@
 	   #:boolean-value
 	   #:string-value
 
+	   #:with-namespaces
 	   #:evaluate
 	   #:xpath
 	   #:first-node
