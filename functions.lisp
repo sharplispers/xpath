@@ -34,18 +34,6 @@
                (or (boolean-value (funcall first context))
                    (funcall rest context)))))))
 
-
-#+nil
-(defun compile-binary (op exprs)
-  (assert (eq op '=)) ;; FIXME!!! (TBD)
-  (destructuring-bind (u v) exprs
-    (xf-equal (compile-xpath u) (compile-xpath v))))
-
-
-(define-xpath-function/lazy :and (&rest exprs) (xf-and exprs))
-
-(define-xpath-function/lazy :or (&rest exprs) (xf-or exprs))
-
 (define-xpath-function/eager = (a b) (compare-values 'equal a b))
 
 (define-xpath-function/eager /= (a b) (not (compare-values 'equal a b)))
@@ -58,7 +46,19 @@
 
 (define-xpath-function/eager >= (a b) (compare-values '>= a b))
 
+;; boolean functions
+
+(define-xpath-function/lazy :and (&rest exprs) (xf-and exprs))
+
+(define-xpath-function/lazy :or (&rest exprs) (xf-or exprs))
+
 (define-xpath-function/single-type :not boolean (a) (not a))
+
+(define-xpath-function/eager :true () t)
+
+(define-xpath-function/eager :false () nil)
+
+(define-xpath-function/single-type :boolean boolean (value) value)
 
 ;; node-set functions
 
@@ -90,6 +90,24 @@
 (define-xpath-function/single-type :contains string (needle haystack)
   (and (search needle haystack) t))
 
+(define-xpath-function/eager :substring (string start &optional (len nil len-p))
+  (let* ((string (string-value string))
+         (start (xnum-round (number-value start)))
+         (end (if len-p
+                  (xnum-+ start (xnum-round (number-value len)))
+                  (1+ (length string)))))
+    (if (or (nan-p start)
+            (nan-p end)
+            (compare-numbers '> start end)
+            (compare-numbers '> start (length string))
+            (compare-numbers '< end 1))
+        ""
+        (subseq string
+                (1- (if (inf-p start) 1 (max 1 start)))
+                (1- (if (inf-p end)
+                        (1+ (length string))
+                        (min end (1+ (length string)))))))))
+
 ;; FIXME: corner case: empty substring?
 (define-xpath-function/single-type :substring-before string (string substring)
   (let ((p (search substring string)))
@@ -108,10 +126,16 @@
 
 ;; number functions
 
+(define-xpath-function/single-type :number string (value) value)
+
 (macrolet ((numop (op lisp-op)
              `(define-xpath-function/single-type ,op number (a b) (,lisp-op a b))))
   (numop + xnum-+)
-  (numop - xnum--)
   (numop * xnum-*)
   (numop / xnum-/)
   (numop mod xnum-mod))
+
+(define-xpath-function/eager - (a &optional (b nil b-p))
+  (if b-p
+      (xnum-- (number-value a) (number-value b))
+      (xnum-- (number-value a))))

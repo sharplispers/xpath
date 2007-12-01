@@ -6,10 +6,9 @@
 (in-package :xpath.system)
 
 (defsystem #:xpath
-    :name "cl-xpath"
-    :author "Ivan Shvedunov"
+    :name "plexippus-xpath"
+    :author "Ivan Shvedunov, David Lichteblau"
     :version "0.1"
-    :description "cl-xpath"
     :depends-on (:cxml :parse-number :cl-ppcre :yacc)
     :components ((:module xpath
                           :pathname ""
@@ -27,5 +26,7 @@
                            (:file "node-tests" :depends-on ("utils" "xnum" "pipes" "xml-utils"))
                            (:file "xpath" :depends-on ("axes" "node-tests"))
                            (:file "functions" :depends-on ("xpath"))
-                           (:file "xpath-test" :depends-on ("xpath" "functions" "types" "lexer"))
-			   (:file "lexer" :depends-on ("package"))))))
+                           (:file "lexer" :depends-on ("package"))
+                           (:file "parser" :depends-on ("lexer"))
+                           (:file "api" :depends-on ("xpath" "parser"))
+			   (:file "xpath-test" :depends-on ("xpath" "functions" "types" "api"))))))

@@ -6,6 +6,7 @@
 	   #:attribute-pipe
 	   #:namespace-pipe
 
+           #:node-p
 	   #:parent-node
 	   #:local-name
 	   #:qualified-name
@@ -23,12 +24,15 @@
 
 	   #:boolean-value
 	   #:string-value
+           #:number-value
 
 	   #:with-namespaces
 	   #:evaluate
 	   #:xpath
 	   #:first-node
 	   #:all-nodes
+           #:map-node-set
+           #:do-node-set
 	   #:node-set
 
 	   #:environment-find-namespace

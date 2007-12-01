@@ -67,34 +67,43 @@
         (t (compare/no-node-sets op a b))))
 
 (defun boolean-value (value)
-  (typecase value
-    (string (not (equal value "")))
-    (xnum (not (or (nan-p value)
-                   (x-zerop value))))
-    (node-set (not (pipe-empty-p (pipe-of value))))
-    (t (if value t nil))))
+  (if (xpath-protocol:node-p value)
+      (boolean-value (xpath-protocol:string-value value))
+      (typecase value
+        (string (not (equal value "")))
+        (xnum (not (or (nan-p value)
+                       (x-zerop value))))
+        (node-set (not (pipe-empty-p (pipe-of value))))
+        (t (if value t nil)))))
 
 (defun number-value (value)
-  (typecase value
-    (string (parse-xnum value)) ;; FIXME!!!! it should be double-float; how to handle junk? NaN?
-    (xnum value)
-    (node-set (number-value (string-value value)))
-    (t (if value 1 0))))
+  (if (xpath-protocol:node-p value)
+      (number-value (xpath-protocol:string-value value))
+      (typecase value
+        (string (parse-xnum value)) ;; FIXME!!!! it should be double-float; how to handle junk? NaN?
+        (xnum value)
+        (node-set (number-value (string-value value)))
+        (t (if value 1 0)))))
 
 (defun string-value (value)
-  (typecase value
-    (string value)
-    (xnum (xnum->string value)) ;; fixme; probably also should use format string
-    (node-set
-     (if (pipe-empty-p (pipe-of value))
-         ""
-         (get-node-text (pipe-head (pipe-of value)))))
-    (t (if value "true" "false"))))
+  (if (xpath-protocol:node-p value)
+      (string-value (xpath-protocol:string-value value))
+      (typecase value
+        (string value)
+        (xnum (xnum->string value)) ;; fixme; probably also should use format string
+        (node-set
+         (if (pipe-empty-p (pipe-of value))
+             ""
+             (get-node-text (pipe-head (pipe-of value)))))
+        (t (if value "true" "false")))))
 
 (defun node-set-value (value)
-  (if (node-set-p value)
-      value
-      (error "cannot convert ~s to a NODE-SET" value)))
+  (cond ((node-set-p value)
+         value)
+        ((xpath-protocol:node-p value)
+         (make-node-set (list value)))
+        (t
+         (error "cannot convert ~s to a NODE-SET" value))))
 
 ;; context
 

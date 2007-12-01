@@ -166,109 +166,173 @@
                    (funcall (xf-location-path path2)
                             (make-context *sample-xml*))))))
 
+(defmacro verify-xpath* (&rest items)
+  (maybe-progn
+   (loop for (expected . xpaths) in items
+         append (loop for xpath in xpaths
+                      collect
+                      `(assert-equal
+                              ,expected
+                               (join-xpath-result
+                                (evaluate
+                                 ,(if (stringp xpath)
+                                      xpath
+                                      `'(xpath ,xpath))
+                                 (make-context *sample-xml*))))))))
+
 ;; TODO: test * and :text node tests; test returning multiple items; add other funcs; fix xf-equal
-(deftest test-xpath/unabbreviated
-  (macrolet ((verify-xpath* (&rest pairs)
-               (maybe-progn
-                (loop for (expected xpath) on pairs by #'cddr
-                      collect `(assert-equal ,expected
-                                              (join-xpath-result
-                                               (funcall (compile-xpath ,xpath (make-test-environment))
-                                                        (make-context *sample-xml*))))))))
+(deftest test-xpath
+  (with-namespaces ()
     (verify-xpath*
-     "zzz|||qqq"
-     '(:path 
+     ("zzz|||qqq"
+      (:path 
        (:descendant "a")
        (:attribute "href"))
-     "another-value"
-     '(:path
+      "descendant::a/attribute::href"
+      "descendant::a/@href"
+      "descendant::a/@href"
+      "descendant::a[@href]/@href")
+     ("another-value"
+      (:path
        (:child "div")
        (:descendant *
-        (= (:path (:attribute "class")) "another")))
-     "val1val2"
-     '(:path
+                    (= (:path (:attribute "class")) "another")))
+      "child::div/descendant::*[attribute::class='another']"
+      "div/descendant::*[@class='another']")
+     ("val1val2"
+      (:path
        (:descendant "a"
-        (= (:path (:attribute "href")) "zzz")))
-     "another-value"
-     '(:path
+                    (= (:path (:attribute "href")) "zzz")))
+      "descendant::a[attribute::href='zzz']"
+      "descendant::a[@href='zzz']")
+     ("another-value"
+      (:path
        (:child "div")
        (:child *
-        (= (:path (:attribute "class")) "another")))
-     "val3"
-     '(:path
+               (= (:path (:attribute "class")) "another")))
+      "child::div/child::*[attribute::class='another']"
+      "div/*[@class='another']")
+     ("val3"
+      (:path
        (:descendant "a"
-        (/= (:path (:attribute "href")) "zzz")))
-     "val1|||val3|||another-value"
-     '(:path
+                    (/= (:path (:attribute "href")) "zzz")))
+      "descendant::a[attribute::href != 'zzz']"
+      "descendant::a[@href != 'zzz']")
+     ("val1|||val3|||another-value"
+      (:path
        (:descendant "span"
-        (:or (= (:path (:attribute "class")) "sample")
-         (= (:path (:attribute "class")) "another"))))
-     "42"
-     '(:path
+                    (:or (= (:path (:attribute "class")) "sample")
+                         (= (:path (:attribute "class")) "another"))))
+      "descendant::span[attribute::class='sample' or attribute::class='another']"
+      "descendant::span[@class='sample' or @class='another']")
+     ("42"
+      (:path
        (:descendant "span"
-        (:and (:path (:attribute "class"))
-         (:not (:or (= (:path (:attribute "class")) "sample")
-                    (= (:path (:attribute "class")) "another"))))))
-     "42"
-     '(:path
+                    (:and (:path (:attribute "class"))
+                          (:not (:or (= (:path (:attribute "class")) "sample")
+                                     (= (:path (:attribute "class")) "another"))))))
+      "descendant::span[attribute::class and not(attribute::class='sample' or attribute::class='another')]"
+      "descendant::span[@class and not(@class='sample' or @class='another')]")
+     ("42"
+      (:path
        (:child *)
        (:child * (:path (:child "hr"))))
-     "val3"
-     '(:path
+      "child::*/child::*[child::hr]"
+      "*/*[hr]")
+     ("val3"
+      (:path
        (:descendant "a"
-        (= (:position) 2)))
-     "42"
-     '(:path
+                    (= (:position) 2)))
+      "descendant::a[position()=2]")
+     ("42"
+      (:path
        (:descendant "span"
-        (= (:position) (:last))))
-     "val1"
-     '(:path
+                    (= (:position) (:last))))
+      "descendant::span[position()=last()]")
+     ("val1"
+      (:path
        (:descendant "span" 1))
-     "42"
-     '(:path
+      "descendant::span[1]")
+     ("42"
+      (:path
        (:descendant "span" (:last)))
-     "true" '(< 1 2)
-     "false" '(> 1 2)
-     "true" '(<= (:path (:child "div")
-                  (:child "span" (= (:path (:attribute "class")) "yetanother")))
-              42)
-     "false" '(>= (:path (:child "div")
-                   (:child "span" (= (:path (:attribute "class")) "yetanother")))
-               43)
-     "5"
-     '(:count (:path (:descendant "span")))
-     "val3"
-     '(:path (:child "div")
-       (:child "a" (= (:count (:path (:child "span"))) 2)))
-     "2"
-     '(:count (:path (:descendant * (= (:local-name) "a"))))
-     "span"
-     '(:local-name (:path (:descendant * (= (:path (:attribute "class")) "yetanother"))))
-     ""
-     '(:local-name (:path (:descendant "font")))
-     "class"
-     '(:local-name (:path (:descendant *) (:attribute "class")))
-     "abc42qqq-false"
-     '(:concat "abc" 42 "qqq-" nil)
+      "descendant::span[last()]")
+     ("true" (< 1 2) "1 < 2")
+     ("false" (> 1 2) "1 > 2")
+     ("true"
+      (<= (:path (:child "div")
+                 (:child "span" (= (:path (:attribute "class")) "yetanother")))
+          42)
+      "div/span[@class='yetanother'] <= 42")
+     ("false"
+      (>= (:path (:child "div")
+                 (:child "span" (= (:path (:attribute "class")) "yetanother")))
+          43)
+      "div/span[@class='yetanother'] >= 43")
+     ("5"
+      (:count (:path (:descendant "span")))
+      "count(descendant::span)")
+     ("val3"
+      (:path (:child "div")
+             (:child "a" (= (:count (:path (:child "span"))) 2)))
+      "div/a[count(span)=2]")
+     ("2"
+      (:count (:path (:descendant * (= (:local-name) "a"))))
+      "count(descendant::*[local-name()='a'])")
+     ("span"
+      (:local-name (:path (:descendant * (= (:path (:attribute "class")) "yetanother"))))
+      "local-name(descendant::*[@class='yetanother'])")
+     (""
+      (:local-name (:path (:descendant "font")))
+      "local-name(descendant::font)")
+     ("class"
+      (:local-name (:path (:descendant *) (:attribute "class")))
+      "local-name(descendant::*/@class)")
+     ("abc42qqq-false"
+      (:concat "abc" 42 "qqq-" (:false))
+      "concat('abc',42, 'qqq-', false())")
+     ("false" (:false) "false()")
+     ("true" (:true) "true()")
+     ("false" (:boolean "") "boolean('')")
+     ("true" (:boolean "aa") "boolean('aa')")
+     ("42" (+ (:number "20") 22) "number('20') + 22")
      ;; test string(x)
-     "val1val2|||val3"
-     '(:path (:descendant "a"))
-     "val1val2"
-     '(:string (:path (:descendant "a")))
-     "true"
-     '(:contains "needle" "needle-in-haystack")
-     "1999"
-     '(:substring-before "1999/04/01" "/")
-     "04/01"
-     '(:substring-after "1999/04/01" "/")
-     "99/04/01"
-     '(:substring-after "1999/04/01" "19")
-     "3"
-     '(:string-length "abc")
-     "42"
-     '(:path (:descendant * (> (:path (:self *)) 41)))
-     "42"
-     '(* 2 (+ (- 100 90) 11)))))
+     ("val1val2|||val3"
+      (:path (:descendant "a"))
+      "descendant::a")
+     ("val1val2"
+      (:string (:path (:descendant "a")))
+      "string(descendant::a)")
+     ("true"
+      (:contains "needle" "needle-in-haystack")
+      "contains('needle', 'needle-in-haystack')")
+     ("1999"
+      (:substring-before "1999/04/01" "/")
+      "substring-before('1999/04/01', '/')")
+     ("04/01"
+      (:substring-after "1999/04/01" "/")
+      "substring-after('1999/04/01', '/')")
+     ("99/04/01"
+      (:substring-after "1999/04/01" "19")
+      "substring-after('1999/04/01', '19')")
+     ("3"
+      (:string-length "abc")
+      "string-length('abc')")
+     ("42"
+      (:path (:descendant * (> (:path (:self *)) 41)))
+      "descendant::*[.>41]")
+     ("42"
+      (* 2 (+ (- 100 90) 11))
+      "2 * (100 - 90 + 11)")
+     ("def" (:substring "abcdef" 4) "substring('abcdef', 4)")
+     ("abc" (:substring "abcdef" 1 3) "substring('abcdef', 1, 3)")
+     ("abc" (:substring "abcdef" 0 4) "substring('abcdef', 0, 4)")
+     ("234" "substring('12345', 1.5, 2.6)")
+     ("12" "substring('12345', 0, 3)")
+     ("" "substring('12345', 0 div 0, 3)")
+     ("" "substring('12345', 1, 0 div 0)")
+     ("12345" "substring('12345', -42, 1 div 0)")
+     ("" "substring('12345', -1 div 0, 1 div 0)"))))
 
 (deftest test-with-namespaces-1
   (with-namespaces (("" ""))

@@ -33,6 +33,8 @@
 
 ;; generic functions of the XPath protocol
 
+(defgeneric xpath-protocol:node-p (node)
+  (:method ((node t)) nil))
 (defgeneric xpath-protocol:child-pipe (node))
 (defgeneric xpath-protocol:attribute-pipe (node))
 (defgeneric xpath-protocol:namespace-pipe (node))
@@ -57,6 +59,8 @@
 
 
 ;; DOM mapping: simple slots
+
+(defmethod xpath-protocol:node-p ((node dom:node)) t)
 
 (defmethod xpath-protocol:parent-node ((node dom:node))
   (dom:parent-node node))

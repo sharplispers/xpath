@@ -75,6 +75,21 @@
         ((inf-p b) a)
         (t (rem a b))))
 
+(defun xnum-round (a)
+  (if (or (nan-p a) (inf-p a))
+      a
+      (round a)))
+
+(defun xnum-ceiling (a)
+  (if (or (nan-p a) (inf-p a))
+      a
+      (ceiling a)))
+
+(defun xnum-floor (a)
+  (if (or (nan-p a) (inf-p a))
+      a
+      (floor a)))
+
 (defun preprocess-number-str (str)
   (cond ((position #\e str) (string-replace str "e" "d"))
         ((position #\d str) str)
@@ -183,7 +198,19 @@
                  :nan (xnum-mod :-inf 42)
                  :nan (xnum-mod :inf 42)
                  :nan (xnum-mod 0 0)
-                 :nan (xnum-mod 42 0))
+                 :nan (xnum-mod 42 0)
+                 2 (xnum-round 1.6)
+                 :nan (xnum-round :nan)
+                 :inf (xnum-round :inf)
+                 :-inf (xnum-round :-inf)
+                 1 (xnum-floor 1.6)
+                 :nan (xnum-floor :nan)
+                 :inf (xnum-floor :inf)
+                 :-inf (xnum-floor :-inf)
+                 2 (xnum-ceiling 1.6)
+                 :nan (xnum-ceiling :nan)
+                 :inf (xnum-ceiling :inf)
+                 :-inf (xnum-ceiling :-inf))
   (loop for op in '(xnum-/ xnum-* xnum-+ xnum-- xnum-mod)
         do (assert-equal*
                   :nan (funcall op :nan :nan)

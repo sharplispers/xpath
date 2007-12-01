@@ -110,7 +110,7 @@
 	  (error "undeclared namespace: ~A" prefix))
       ""))
 
-(defun compile-xpath (expr environment)
+(defun compile-xpath/sexpr (expr environment)
   (cond ((atom expr) (xf-value expr))
         ((eq (first expr) :path)
          (compile-path (rest expr) environment))
@@ -122,7 +122,7 @@
         (t
          (let ((name (first expr))
 	       (thunks
-		(mapcar #'(lambda (e) (compile-xpath e environment))
+		(mapcar #'(lambda (e) (compile-xpath/sexpr e environment))
 			(rest expr))))
 	   (etypecase name
 	     (symbol
@@ -182,7 +182,7 @@
                           (compile-node-test node-test
 					     environment
 					     (eq axis :attribute))
-                          (mapcar #'(lambda (p) (compile-xpath p environment))
+                          (mapcar #'(lambda (p) (compile-xpath/sexpr p environment))
 				  predicates))))
 
 (defun compile-path (path environment)
@@ -193,7 +193,7 @@
 ;; like compile-path, but with an initial node set that is computed by
 ;; a user expression `filter' rather than as the current node 
 (defun compile-filter-path (filter predicate path environment)
-  (let* ((filter-thunk (compile-xpath filter environment))
+  (let* ((filter-thunk (compile-xpath/sexpr filter environment))
 	 (predicate-thunk (compile-predicates (list predicate)))
 	 (steps (mapcar #'(lambda (step)
 			    (compile-location-step step environment))
@@ -209,51 +209,3 @@
 	    (if path-thunk
 		(mappend-pipe path-thunk good-nodes)
 		good-nodes)))))))
-
-;; public evaluation API
-
-(defun first-node (node-set)
-  (pipe-head (pipe-of node-set)))
-
-(defun all-nodes (node-set)
-  (force (pipe-of node-set)))
-
-(defmacro xpath (form)
-  `(list 'xpath ',form))
-
-(defun evaluate (xpath context)
-  (when (typep xpath 'string)
-    (setf xpath (list 'xpath (parse-xpath xpath))))
-  (when (listp xpath)
-    (unless (and (consp xpath) (eq (car xpath) 'xpath) (null (cddr xpath)))
-      (error "invalid xpath designator: ~A" xpath))
-    (setf xpath (compile-xpath (second xpath)
-			       (make-lexical-environment
-				*lexical-namespaces*))))
-  (unless (functionp xpath)
-    (error "invalid xpath designator: ~A" xpath))
-  (unless (typep context 'context)
-    ;; FIXME: Should this perhaps compute position and size based on 
-    ;; the node's siblings instead?
-    (setf context (make-context context)))
-  (funcall xpath context))
-
-(define-compiler-macro evaluate (&whole whole &environment env xpath context)
-  (let ((namespaces (macroexpand '(lexical-namespaces) env)))
-    (unless namespaces
-      (error "EVALUATE used outside of with-namespaces"))
-    (if (or (and (stringp xpath)
-		 (not (functionp xpath)))
-	    (and (consp xpath) (eq (car xpath) 'xpath)))
-	(let ((y (if (typep xpath 'string)
-		     (list 'xpath (parse-xpath xpath))
-		     xpath)))
-	  (unless (and (consp y)
-		       (eq (car y) 'xpath)
-		       (null (cddr y)))
-	    (error "invalid xpath designator: ~A" y))
-	  `(evaluate (load-time-value
-		      (compile-xpath ',(second y)
-				     (make-lexical-environment ',namespaces)))
-		     ,context))
-	whole)))
