@@ -56,9 +56,12 @@ Return value of RESULT form or NIL if it doesn't specified."
   "Used to specify sexpr-based XPath expression"
   `(list 'xpath ',form))
 
+(deftype xpath-expr ()
+  '(or string function
+    (cons (eql xpath) (cons t null))))
+
 (defun compile-xpath (xpath &optional environment)
-  (unless (or (stringp xpath) (functionp xpath)
-              (and (consp xpath) (eq (car xpath) 'xpath) (null (cddr xpath))))
+  (unless (typep xpath 'xpath-expr)
     (error "invalid xpath designator: ~A" xpath))
   (if (functionp xpath)
       xpath
@@ -77,7 +80,7 @@ Return value of RESULT form or NIL if it doesn't specified."
            (if (typep context 'context) context (make-context context))))
 
 (define-compiler-macro evaluate (&whole whole &environment env xpath context)
-  (if (not (constantp xpath env))
+  (if (not (typep xpath 'xpath-expr))
       whole
       (let ((namespaces (macroexpand '(lexical-namespaces) env)))
         (cond (namespaces
