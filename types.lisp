@@ -177,7 +177,8 @@
 	 (append (loop
 		    for (prefix uri) in bindings
 		    do
-		      (check-type prefix string)
+		      (when (equal prefix "") (setf prefix nil))
+		      (check-type prefix (or string null))
 		      (check-type uri string)
 		    collect (cons prefix uri))
 		 (or (macroexpand '(lexical-namespaces) env)
