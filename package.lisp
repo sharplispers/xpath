@@ -36,5 +36,9 @@
            #:do-node-set
 	   #:node-set
 
+	   #:context
+	   #:make-context
+	   #:context-node
+
 	   #:environment-find-namespace
 	   #:environment-find-variable))
