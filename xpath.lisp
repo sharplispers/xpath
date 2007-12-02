@@ -127,7 +127,7 @@
 	   (etypecase name
 	     (symbol
 	      (funcall (or (get name 'xpath-function)
-			   (error "no such function: ~s" expr))
+			   (error "no such function: ~s" name))
 		       thunks))
 	     (string
 	      (multiple-value-bind (local-name uri)
