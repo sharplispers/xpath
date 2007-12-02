@@ -27,6 +27,7 @@
            #:number-value
 
 	   #:with-namespaces
+	   #:with-variables
 	   #:evaluate
 	   #:xpath
 	   #:first-node
@@ -36,6 +37,4 @@
 	   #:node-set
 
 	   #:environment-find-namespace
-	   #:environment-validate-variable
-
-	   #:context-variable-value))
+	   #:environment-find-variable))

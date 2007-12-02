@@ -117,8 +117,6 @@
         (setf size/delayed (funcall size/delayed))
         size/delayed)))
 
-(defgeneric context-variable-value (context local-name uri))
-
 
 ;; environment
 ;;
@@ -128,7 +126,7 @@
 
 (defgeneric environment-find-namespace (environment prefix))
 (defgeneric environment-find-function (environment local-name uri))
-(defgeneric environment-validate-variable (environment local-name uri))
+(defgeneric environment-find-variable (environment local-name uri))
 
 
 ;; lexical environment
@@ -138,8 +136,10 @@
 
 (defstruct (lexical-environment
 	     (:include environment)
-	     (:constructor make-lexical-environment (namespaces)))
-  namespaces)
+	     (:constructor make-lexical-environment
+			   (namespaces variables)))
+  namespaces
+  variables)
 
 (defmethod environment-find-namespace
     ((environment lexical-environment) prefix)
@@ -149,10 +149,17 @@
 ;;; (defmethod environment-find-function ((environment lexical-environment) lname uri)
 ;;;   )
 
-;;; (defmethod environment-validate-variable
-;;;     ((environment lexical-environment) lname uri)
-;;;   (declare (ignore lname uri))
-;;;   )
+(defmethod environment-find-variable
+    ((environment lexical-environment) lname uri)
+  (let ((cons (assoc (cons lname uri)
+		     (lexical-environment-variables environment)
+		     :test 'equal)))
+    (if cons
+	(let ((value (cdr cons)))
+	  (lambda (ctx)
+	    (declare (ignore ctx))
+	    value))
+	nil)))
 
 (defparameter *initial-namespaces*
   '((nil . "")
@@ -160,8 +167,10 @@
     ("xml" . #"http://www.w3.org/XML/1998/namespace")))
 
 (defparameter *lexical-namespaces* nil)
+(defparameter *lexical-variables* nil)
 
 (defmacro lexical-namespaces () nil)
+(defmacro lexical-variables () nil)
 
 (defmacro with-namespaces ((&rest bindings) &body body &environment env)
   (let ((conses
@@ -175,6 +184,33 @@
 		     *initial-namespaces*))))
     `(let ((*lexical-namespaces* ',conses))
        (macrolet ((lexical-namespaces () ',conses))
+	 ,@body))))
+
+(defun decode-lexical-qname (qname macro-env attributep)
+  (multiple-value-bind (prefix local-name)
+      (cxml::split-qname qname)
+    (values local-name (find-lexical-namespace prefix macro-env attributep))))
+
+(defun find-lexical-namespace (prefix macro-env attributep)
+  (if (or prefix (not attributep))
+      (let ((namespaces
+	     (or (macroexpand '(lexical-namespaces) macro-env)
+		 *initial-namespaces*)))
+	(or (cdr (assoc prefix namespaces :test #'equal))
+	    (error "undeclared namespace: ~A" prefix)))
+      ""))
+
+(defmacro with-variables ((&rest bindings) &body body &environment env)
+  (let* ((alist
+	  (append (loop
+		     for (qname value) in bindings
+		     collect
+		       (multiple-value-bind (local-name uri)
+			   (decode-lexical-qname qname env nil)
+			 (cons (cons local-name uri) value)))
+		  (macroexpand '(lexical-variables) env))))
+    `(let ((*lexical-variables* ',alist))
+       (macrolet ((lexical-variables () ',alist))
 	 ,@body))))
 
 
@@ -194,7 +230,7 @@
   #'(lambda (&rest args)
       (error "function ~A, ~A was called with args ~A" lname uri args)))
 
-(defmethod environment-validate-variable
+(defmethod environment-find-variable
     ((environment test-environment) lname uri)
   (declare (ignore lname uri))
   t)

@@ -143,10 +143,8 @@
 (defun compile-variable (name environment)
   (multiple-value-bind (local-name uri)
       (decode-qname name environment nil)
-    (unless (environment-validate-variable environment local-name uri)
-      (error "undeclared variable: ~A in namespace ~A" local-name uri))
-    (lambda (context)
-      (context-variable-value context local-name uri))))
+    (or (environment-find-variable environment local-name uri)
+	(error "undeclared variable: ~A in namespace ~A" local-name uri))))
 
 (defun compile-node-test (node-test environment attributep)
   (etypecase node-test

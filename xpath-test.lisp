@@ -361,3 +361,28 @@
       t)
     (:no-error (x)
       (error "test failed with return value ~A" x))))
+
+(deftest test-with-variables-1
+  (with-namespaces (("" ""))
+    (with-variables (("foo" 3))
+      (eql (number-value (evaluate "$foo" *sample-xml*)) 3))))
+
+(deftest test-with-variables-2
+  (with-namespaces (("" "")
+		    ("ns" "http://foo"))
+    (with-variables (("foo" 2)
+		     ("ns:foo" 3))
+      (eql (number-value (evaluate "$foo + $ns:foo" *sample-xml*)) 5))))
+
+(deftest test-with-variables-3
+  (handler-case
+      (funcall (compile nil
+			`(lambda ()
+			   (with-namespaces (("" ""))
+			     (with-variables (("foo" 2)
+					      ("ns:foo" 3))
+			       (evaluate "$foo" *sample-xml*))))))
+    (error ()
+      t)
+    (:no-error (x)
+      (error "test failed with return value ~A" x))))

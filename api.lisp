@@ -70,7 +70,8 @@ Return value of RESULT form or NIL if it doesn't specified."
                                (second xpath))
                            (or environment
                                (make-lexical-environment
-                                *lexical-namespaces*)))))
+                                *lexical-namespaces*
+				*lexical-variables*)))))
 
 (defun evaluate (xpath context)
   "Evaluate an XPath expression specified by XPATH in specified CONTEXT"
@@ -82,11 +83,14 @@ Return value of RESULT form or NIL if it doesn't specified."
 (define-compiler-macro evaluate (&whole whole &environment env xpath context)
   (if (not (typep xpath 'xpath-expr))
       whole
-      (let ((namespaces (macroexpand '(lexical-namespaces) env)))
+      (let ((namespaces (macroexpand '(lexical-namespaces) env))
+	    (variables (macroexpand '(lexical-variables) env)))
         (cond (namespaces
                `(evaluate (load-time-value
                            (compile-xpath ,xpath
-                                          (make-lexical-environment ',namespaces)))
+                                          (make-lexical-environment
+					   ',namespaces
+					   ',variables)))
                           ,context))
               (t
                (warn "not using compiler macro because EVALUATE is used not inside with-namespaces")
