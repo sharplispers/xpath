@@ -33,6 +33,7 @@
 	   #:first-node
 	   #:all-nodes
            #:map-node-set
+	   #:map-node-set->list
            #:do-node-set
            #:make-node-set-iterator
            #:node-set-iterator-end-p
