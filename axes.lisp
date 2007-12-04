@@ -49,8 +49,9 @@ FIXME: need to implement all axes
                 (xpath-protocol:child-pipe node)))
 
 (define-axis :following-sibling ()
-  (subpipe-after node (xpath-protocol:child-pipe
-		       (xpath-protocol:parent-node node))))
+  (unless (null (xpath-protocol:parent-node node))
+    (subpipe-after node (xpath-protocol:child-pipe
+			 (xpath-protocol:parent-node node)))))
 
 (define-axis :preceding-sibling ()
   (let ((parent (xpath-protocol:parent-node node)))

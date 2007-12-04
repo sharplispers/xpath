@@ -128,43 +128,6 @@
              (not (compare-values '< (2values 9 10) (2values 3 4)))
              (not (compare-values '<= (2values 9 10) (2values 3 4))))))
 
-(deftest test-xpath/internal
-  (let ((path1 (make-location-path
-                (list (make-location-step :descendant
-                                          (node-test-name "a")
-                                          nil)
-                      (make-location-step :attribute
-                                          (node-test-name "href")
-                                          nil))))
-        (path2 (make-location-path
-                (list (make-location-step
-                       :child
-                       (node-test-name "div")
-                       nil)
-                      (make-location-step
-                       :descendant
-                       (node-test-principal)
-                       (list
-			(xf-equal
-			 (xf-location-path
-			  (make-location-path
-			   (list (make-location-step :attribute
-						     (node-test-name "class")
-						     nil))))
-			 (xf-value "another"))))))))
-    (assert-equal (list "zzz" "qqq")
-                  (force
-                   (map-pipe #'dom:node-value
-                             (funcall path1 *sample-xml*))))
-    (assert-equal "zzz"
-                  (string-value
-                   (funcall (xf-location-path path1)
-                            (make-context *sample-xml*))))
-    (assert-equal "another-value"
-                  (string-value
-                   (funcall (xf-location-path path2)
-                            (make-context *sample-xml*))))))
-
 (defmacro verify-xpath* (&rest items)
   (maybe-progn
    (loop for (expected . xpaths) in items
@@ -386,6 +349,20 @@
       t)
     (:no-error (x)
       (error "test failed with return value ~A" x))))
+
+(deftest test-following
+  (xpath:with-namespaces (("" ""))
+    (assert-equal 0 (xpath:evaluate "count(html/following::text())"
+				    (cxml:parse-rod "<html></html>"
+						    (cxml-dom:make-dom-builder))))))
+
+(deftest test-filtering
+  (with-namespaces (("" ""))
+    ;; FIXME: need to be able to specify non-constant variable values
+    (let ((*lexical-variables* (list (cons '("somevar" . "") (evaluate "/div" *sample-xml*)))))
+      (assert-equal "another-value"
+		    (evaluate (string "string($somevar/span[@class='another'])")
+			      *sample-xml*)))))
 
 (deftest test-node-set-api
   (labels ((join (list)

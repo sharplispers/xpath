@@ -120,11 +120,11 @@ end of its node set"
 	    (variables (macroexpand '(lexical-variables) env)))
         (cond (namespaces
                `(evaluate (load-time-value
-                           (compile-xpath ,xpath
-                                          (make-lexical-environment
+			   (compile-xpath ,xpath
+					  (make-lexical-environment
 					   ',namespaces
 					   ',variables)))
-                          ,context))
+			  ,context))
               (t
                (warn "not using compiler macro because EVALUATE is used not inside with-namespaces")
                whole)))))

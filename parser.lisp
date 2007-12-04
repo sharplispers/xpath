@@ -181,7 +181,7 @@
 	      ;; FIXME: is this right?
 	      (lambda* (a)
 		(destructuring-bind (expr predicate) (cdr a)
-		  (if (eq predicate t)
+		  (if (equal predicate '(:true))
 		      expr
 		      a))))
 	     (filter-expr :/ relative-location-path
@@ -194,7 +194,7 @@
 				      ,@(cdr d)))))
 
   (filter-expr (primary-expr
-		(lambda (a) `(:filter ,a t)))
+		(lambda (a) `(:filter ,a (:true))))
 	       (filter-expr predicate
 			    (lambda* (a b) `(:filter ,a ,b))))
 

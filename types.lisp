@@ -209,16 +209,16 @@
 
 (defmacro with-variables ((&rest bindings) &body body &environment env)
   (let* ((alist
-	  (append (loop
-		     for (qname value) in bindings
-		     collect
-		       (multiple-value-bind (local-name uri)
-			   (decode-lexical-qname qname env nil)
-			 (cons (cons local-name uri) value)))
-		  (macroexpand '(lexical-variables) env))))
+          (append (loop
+                     for (qname value) in bindings
+                     collect
+                       (multiple-value-bind (local-name uri)
+                           (decode-lexical-qname qname env nil)
+                         (cons (cons local-name uri) value)))
+                  (macroexpand '(lexical-variables) env))))
     `(let ((*lexical-variables* ',alist))
        (macrolet ((lexical-variables () ',alist))
-	 ,@body))))
+         ,@body))))
 
 
 ;; test environment

@@ -5,9 +5,9 @@
 ;; location path assembly
 
 ;; returns function: node -> pipe
-(defun make-location-step (axis node-test predicates)
+(defun make-location-step (axis node-test predicates environment)
   (assert (axis-function axis) () "unknown axis: ~s" axis)
-  (let ((predicate-closure (compile-predicates predicates)))
+  (let ((predicate-closure (compile-predicates predicates environment)))
     #'(lambda (node)
 	(funcall predicate-closure
 		 (filter-pipe #'(lambda (node)
@@ -15,25 +15,28 @@
 					   (axis-principal-node-type axis)))
 			      (funcall (axis-function axis) node))))))
 
-(defun compile-predicates (predicates)
-  (if predicates
-      (let ((predicate (car predicates))
-	    (next (compile-predicates (rest predicates))))
-	#'(lambda (main-pipe)
-	    (let ((context (make-context nil
-					 #'(lambda () (pipe-length main-pipe))
-					 0)))
-	      (funcall next
-		       (filter-pipe
-			#'(lambda (cur-node)
-			    (setf (context-node context) cur-node)
-			    (incf (context-position context))
-			    (let ((pred-result (funcall predicate context)))
-			      (if (xnum-p pred-result)
-				  (= (context-position context) pred-result)
-				  (boolean-value pred-result))))
-			main-pipe)))))
-      #'identity))
+(defun compile-predicates (predicates environment)
+  (labels ((do-compile (predicates)
+	     (if predicates
+		 (let ((predicate (car predicates))
+		       (next (do-compile (rest predicates))))
+		   #'(lambda (main-pipe)
+		       (let ((context (make-context nil
+						    #'(lambda () (pipe-length main-pipe))
+						    0)))
+			 (funcall next
+				  (filter-pipe
+				   #'(lambda (cur-node)
+				       (setf (context-node context) cur-node)
+				       (incf (context-position context))
+				       (let ((pred-result (funcall predicate context)))
+					 (if (xnum-p pred-result)
+					     (= (context-position context) pred-result)
+					     (boolean-value pred-result))))
+				   main-pipe)))))
+		 #'identity)))
+    (do-compile (mapcar #'(lambda (p) (compile-xpath/sexpr p environment))
+			predicates))))
 
 ;; returns function: node -> pipe
 (defun make-location-path (steps)
@@ -180,8 +183,7 @@
                           (compile-node-test node-test
 					     environment
 					     (eq axis :attribute))
-                          (mapcar #'(lambda (p) (compile-xpath/sexpr p environment))
-				  predicates))))
+                          predicates environment)))
 
 (defun compile-path (path environment)
   (xf-location-path
@@ -192,7 +194,7 @@
 ;; a user expression `filter' rather than as the current node 
 (defun compile-filter-path (filter predicate path environment)
   (let* ((filter-thunk (compile-xpath/sexpr filter environment))
-	 (predicate-thunk (compile-predicates (list predicate)))
+	 (predicate-thunk (compile-predicates (list predicate) environment))
 	 (steps (mapcar #'(lambda (step)
 			    (compile-location-step step environment))
 			path))
