@@ -16,7 +16,13 @@
 	(format stream "~A, ~_..." (pipe-head (pipe-of object)))
 	(write-string "empty" stream))))
 
-(defun node-set-p (object) (typep object 'node-set))
+(defun node-set-p (object)
+  "Return true if OBJECT is NODE-SET"
+  (typep object 'node-set))
+
+(defun node-set-empty-p (node-set)
+  "Return true if NODE-SET is empty"
+  (pipe-empty-p (pipe-of node-set)))
 
 (defun make-node-set (pipe) (make-instance 'node-set :pipe pipe))
 

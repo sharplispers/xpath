@@ -42,7 +42,12 @@
 
 (defun map-node-set (func node-set)
   "Call FUNC for each node in NODE-SET"
-  (map-pipe func (pipe-of node-set)))
+  (enumerate (pipe-of node-set) :key func :result nil))
+
+(defun map-node-set->list (func node-set)
+  (loop for pipe = (pipe-of node-set) then (pipe-tail pipe)
+        while (not (pipe-empty-p pipe))
+        collect (funcall func (pipe-head pipe))))
 
 (defmacro do-node-set ((var node-set &optional result) &body body)
   "Execute BODY for each node in NODE-SET binding VAR to the current node.
@@ -51,6 +56,34 @@ Return value of RESULT form or NIL if it doesn't specified."
   `(block nil
      (map-node-set #'(lambda (,var) ,@body) ,node-set)
      ,result))
+
+(defstruct (node-set-iterator
+            (:constructor
+             %make-node-set-iterator (pipe)))
+  pipe)
+
+(defun make-node-set-iterator (node-set)
+  "Create a node set iterator for NODE-SET"
+  (%make-node-set-iterator (pipe-of node-set)))
+
+(defun node-set-iterator-end-p (iterator)
+  "Return true if ITERATOR points to the end of its node set"
+  (pipe-empty-p (node-set-iterator-pipe iterator)))
+
+(defun node-set-iterator-next (iterator)
+  "Advance ITERATOR if it's not at the end of its node set,
+do nothing otherwise. Returns ITERATOR"
+  (unless (node-set-iterator-end-p iterator)
+    (setf (node-set-iterator-pipe iterator)
+          (pipe-tail (node-set-iterator-pipe iterator))))
+  iterator)
+
+(defun node-set-iterator-current (iterator)
+  "Return current node of ITERATOR or nil if it's at the
+end of its node set"
+  (if (node-set-iterator-end-p iterator)
+      nil
+      (pipe-head (node-set-iterator-pipe iterator))))
 
 (defmacro xpath (form)
   "Used to specify sexpr-based XPath expression"

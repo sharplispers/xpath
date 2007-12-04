@@ -34,6 +34,12 @@
 	   #:all-nodes
            #:map-node-set
            #:do-node-set
+           #:make-node-set-iterator
+           #:node-set-iterator-end-p
+           #:node-set-iterator-next
+           #:node-set-iterator-current
+           #:node-set-p
+           #:node-set-empty-p
 	   #:node-set
 
 	   #:context

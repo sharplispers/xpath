@@ -10,7 +10,7 @@
 
 (defparameter *sample-xml*
   (cxml:parse-rod
-   (concat 
+   (concat
     "<div class='something'>"
     "<a href='zzz'>"
     "<span class='sample'>val1</span>"
@@ -27,7 +27,7 @@
 
 (defparameter *sample-xml-2*
   (cxml:parse-rod
-   (concat 
+   (concat
     "<div class='something' xmlns:special='http://special'>"
     "<special:a href='zzz'>"
     "<span class='sample'>val1</span>"
@@ -44,8 +44,7 @@
 
 (defun join-xpath-result (result)
   (if (node-set-p result)
-      (format nil "~{~a~^|||~}"
-              (mapcar #'get-node-text (force (pipe-of result))))
+      (format nil "~{~a~^|||~}" (mapcar #'get-node-text (force (pipe-of result))))
       (string-value result)))
 
 (defun sample-node-set (&optional (xml ""))
@@ -169,23 +168,24 @@
 (defmacro verify-xpath* (&rest items)
   (maybe-progn
    (loop for (expected . xpaths) in items
-         append (loop for xpath in xpaths
-                      collect
-                      `(assert-equal
-                              ,expected
-                               (join-xpath-result
-                                (evaluate
-                                 ,(if (stringp xpath)
-                                      xpath
-                                      `'(xpath ,xpath))
-                                 (make-context *sample-xml*))))))))
+         append
+         (loop for xpath in xpaths
+               collect
+               `(assert-equal
+                       ,expected
+                        (join-xpath-result
+                         (evaluate
+                          ,(if (stringp xpath)
+                               xpath
+                               `'(xpath ,xpath))
+                          (make-context *sample-xml*))))))))
 
 ;; TODO: test * and :text node tests; test returning multiple items; add other funcs; fix xf-equal
 (deftest test-xpath
   (with-namespaces ()
     (verify-xpath*
      ("zzz|||qqq"
-      (:path 
+      (:path
        (:descendant "a")
        (:attribute "href"))
       "descendant::a/attribute::href"
@@ -386,3 +386,48 @@
       t)
     (:no-error (x)
       (error "test failed with return value ~A" x))))
+
+(deftest test-node-set-api
+  (labels ((join (list)
+             (format nil "~{~a~^|||~}" list))
+           (verify-results (expected-str xml)
+             (let ((node-set (sample-node-set xml)))
+               (assert-equal*
+                expected-str
+                (join
+                 (mapcar #'get-node-text
+                         (force (pipe-of node-set))))
+                expected-str
+                (join
+                 (map-node-set->list #'get-node-text node-set))
+                expected-str
+                (let ((l '()))
+                  (assert-equal nil
+                                (map-node-set #'(lambda (node)
+                                                  (push (get-node-text node) l))
+                                              node-set))
+                  (join (nreverse l)))
+                expected-str
+                (let ((l '()))
+                  (do-node-set (node node-set (join (nreverse l)))
+                    (push (get-node-text node) l)))
+                expected-str
+                (let ((l '()))
+                  (assert-equal nil
+                                (do-node-set (node node-set)
+                                  (push (get-node-text node) l)))
+                  (join (nreverse l)))
+                expected-str
+                (join
+                 (loop for iter = (make-node-set-iterator node-set)
+                         then (node-set-iterator-next iter)
+                       while (not (node-set-iterator-end-p iter))
+                       collect (get-node-text
+                                (node-set-iterator-current iter))))))))
+    (verify-results "" "")
+    (verify-results "test" "<span>test</span>")
+    (verify-results "test1|||test2" "<span>test1</span><div>test2</div>")
+    (verify-results "test1|||test2|||test3"
+                    "<span>test1</span><div>test2</div><p>test3</p>")
+    (verify-results "test1|||test2|||test3|||test4"
+                    "<span>test1</span><div>test2</div><p>test3</p><h1>test4</h1>")))
