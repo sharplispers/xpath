@@ -161,10 +161,10 @@
 		     (lexical-environment-variables environment)
 		     :test 'equal)))
     (if cons
-	(let ((value (cdr cons)))
+	(let ((gensym (cdr cons)))
 	  (lambda (ctx)
 	    (declare (ignore ctx))
-	    value))
+	    (symbol-value gensym)))
 	nil)))
 
 (defparameter *initial-namespaces*
@@ -208,15 +208,26 @@
       ""))
 
 (defmacro with-variables ((&rest bindings) &body body &environment env)
-  (let* ((alist
+  (let* ((gensyms (loop
+                     for (qname nil) in bindings
+                     collect
+		       (gensym qname)))
+	 (alist
           (append (loop
-                     for (qname value) in bindings
+		     for gensym in gensyms
+                     for (qname nil) in bindings
                      collect
                        (multiple-value-bind (local-name uri)
                            (decode-lexical-qname qname env nil)
-                         (cons (cons local-name uri) value)))
+                         (cons (cons local-name uri) gensym)))
                   (macroexpand '(lexical-variables) env))))
-    `(let ((*lexical-variables* ',alist))
+    `(let* (,@(loop
+		 for gensym in gensyms
+		 for (nil value) in bindings
+		 collect
+		   `(,gensym ,value))
+	    (*lexical-variables* ',alist))
+       (declare (special ,@gensyms))
        (macrolet ((lexical-variables () ',alist))
          ,@body))))
 

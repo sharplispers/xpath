@@ -350,6 +350,18 @@
     (:no-error (x)
       (error "test failed with return value ~A" x))))
 
+(deftest test-computed-with-variables
+  (with-namespaces (("" ""))
+    (with-variables (("foo" (* 3 5)))
+      (eql (number-value (evaluate "$foo" *sample-xml*)) 15))))
+
+(deftest test-eager-with-variable-evaluation
+  (let ((n 0))
+    (with-namespaces (("" ""))
+      (with-variables (("foo" (incf n)))
+	(evaluate "$foo" *sample-xml*)))
+    (assert-equal n 1)))
+
 (deftest test-following
   (xpath:with-namespaces (("" ""))
     (assert-equal 0 (xpath:evaluate "count(html/following::text())"
@@ -358,8 +370,7 @@
 
 (deftest test-filtering
   (with-namespaces (("" ""))
-    ;; FIXME: need to be able to specify non-constant variable values
-    (let ((*lexical-variables* (list (cons '("somevar" . "") (evaluate "/div" *sample-xml*)))))
+    (with-variables (("somevar" (evaluate "/div" *sample-xml*)))
       (assert-equal "another-value"
 		    (evaluate (string "string($somevar/span[@class='another'])")
 			      *sample-xml*)))))
