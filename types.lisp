@@ -204,7 +204,7 @@
 	     (or (macroexpand '(lexical-namespaces) macro-env)
 		 *initial-namespaces*)))
 	(or (cdr (assoc prefix namespaces :test #'equal))
-	    (error "undeclared namespace: ~A" prefix)))
+	    (xpath-error "undeclared namespace: ~A" prefix)))
       ""))
 
 (defmacro with-variables ((&rest bindings) &body body &environment env)
@@ -246,7 +246,7 @@
 
 (defmethod environment-find-function ((environment test-environment) lname uri)
   #'(lambda (&rest args)
-      (error "function ~A, ~A was called with args ~A" lname uri args)))
+      (xpath-error "function ~A, ~A was called with args ~A" lname uri args)))
 
 (defmethod environment-find-variable
     ((environment test-environment) lname uri)

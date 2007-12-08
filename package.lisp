@@ -48,4 +48,6 @@
 	   #:context-node
 
 	   #:environment-find-namespace
-	   #:environment-find-variable))
+	   #:environment-find-variable
+
+	   #:xpath-error))

@@ -97,10 +97,13 @@
         (t str)))
 
 (defun parse-xnum (str)
-  (or (ignore-errors
-        (parse-number:parse-number
-         (preprocess-number-str (trim str))))
-      :nan))
+  (handler-case
+      (parse-number:parse-number
+       (preprocess-number-str (trim str)))
+    ;; cannot use IGNORE-ERRORS here because PARSE-NUMBER::PARSE-ERROR is
+    ;; not an ERROR
+    ((or error parse-number::parse-error) ()
+      :nan)))
 
 (defun xnum->string (xnum)
   (case xnum

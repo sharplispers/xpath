@@ -95,7 +95,7 @@ end of its node set"
 
 (defun compile-xpath (xpath &optional environment)
   (unless (typep xpath 'xpath-expr)
-    (error "invalid xpath designator: ~A" xpath))
+    (xpath-error "invalid xpath designator: ~A" xpath))
   (if (functionp xpath)
       xpath
       (compile-xpath/sexpr (if (stringp xpath)
@@ -128,3 +128,12 @@ end of its node set"
               (t
                (warn "not using compiler macro because EVALUATE is used not inside with-namespaces")
                whole)))))
+
+;; errors
+
+(define-condition xpath-error (simple-error)
+  ()
+  (:documentation "The class of all xpath errors."))
+
+(defun xpath-error (fmt &rest args)
+  (error 'xpath-error :format-control fmt :format-arguments args))

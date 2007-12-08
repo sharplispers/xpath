@@ -40,7 +40,7 @@
 
 ;; returns function: node -> pipe
 (defun make-location-path (steps)
-  (cond ((null steps) (error "make-location-path: no steps"))
+  (cond ((null steps) (xpath-error "make-location-path: no steps"))
         ((null (rest steps)) (first steps))
         (t
          (let ((first-of-path (first steps))
@@ -110,7 +110,7 @@
 (defun find-namespace (prefix environment attributep)
   (if (or prefix (not attributep))
       (or (environment-find-namespace environment prefix)
-	  (error "undeclared namespace: ~A" prefix))
+	  (xpath-error "undeclared namespace: ~A" prefix))
       ""))
 
 (defun compile-xpath/sexpr (expr environment)
@@ -130,7 +130,7 @@
 	   (etypecase name
 	     (symbol
 	      (funcall (or (get name 'xpath-function)
-			   (error "no such function: ~s" name))
+			   (xpath-error "no such function: ~s" name))
 		       thunks))
 	     (string
 	      (multiple-value-bind (local-name uri)
@@ -147,7 +147,9 @@
   (multiple-value-bind (local-name uri)
       (decode-qname name environment nil)
     (or (environment-find-variable environment local-name uri)
-	(error "undeclared variable: ~A in namespace ~A" local-name uri))))
+	(xpath-error "undeclared variable: ~A in namespace ~A"
+		     local-name
+		     uri))))
 
 (defun compile-node-test (node-test environment attributep)
   (etypecase node-test

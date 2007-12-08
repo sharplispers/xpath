@@ -134,7 +134,7 @@
 			(total-start total-end group-start group-end)
 		      (cl-ppcre:scan scanner str :start pos)
 		    (unless total-start
-		      (error "not a well-formed XPath expression: ~
+		      (xpath-error "not a well-formed XPath expression: ~
                              lexer failed at position ~D" pos))
 		    (setf pos total-end)
 		    (loop
@@ -162,7 +162,7 @@
 				 next-token-value extra-value)
 			   (return (values token-name token-value)))
 		       finally
-			 (error "not a well-formed XPath expression: ~
+			 (xpath-error "not a well-formed XPath expression: ~
                              no token rule matched at ~D" pos))))
 		 (t nil)))))))))
 
@@ -193,7 +193,7 @@
 	    (mapcar #'code-char '(#x000 #x40 #x5B #x60 #x7B #xbf)))
    (name)
    (unless (nc-name-p name)
-     (error "not an NCName: ~A" name))
+     (xpath-error "not an NCName: ~A" name))
    (values :ncname name))
   ("\"([^\"]*)\"" (value) (values :literal value))
   ("'([^']*)'" (value) (values :literal value))
@@ -206,7 +206,7 @@
 			 (org.mapcar.parse-number::invalid-number ()
 			   ;; re-signal this condition, because it's not
 			   ;; a subclass of error
-			   (error "not a well-formed XPath number"))))))
+			   (xpath-error "not a well-formed XPath number"))))))
   ("/(/)?" (2p) (if 2p :// :/))
   ("\\|" () :pipe)
   ("\\+" () :+)
