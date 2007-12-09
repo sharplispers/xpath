@@ -126,7 +126,8 @@
 
 ;; number functions
 
-(define-xpath-function/single-type :number string (value) value)
+(define-xpath-function/single-type :number string (value)
+  (number-value value))
 
 (macrolet ((numop (op lisp-op)
              `(define-xpath-function/single-type ,op number (a b) (,lisp-op a b))))
