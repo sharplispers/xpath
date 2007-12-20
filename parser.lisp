@@ -249,11 +249,13 @@
 ;;;; parser interface
 
 (defun parse-xpath (str)
-  (handler-case
-      (yacc:parse-with-lexer (make-fixup-lexer (xpath-lexer str))
-			     *xpath-parser*)
-    ((and error (not xpath-error) (c)
-      (xpath-error "invalid XPath syntax: ~A in: ~A" c str)))))
+  (handler-bind
+      ((error
+	(lambda (c)
+	  (unless (typep c 'xpath-error)
+	    (xpath-error "invalid XPath syntax: ~A in: ~A" c str)))))
+    (yacc:parse-with-lexer (make-fixup-lexer (xpath-lexer str))
+			   *xpath-parser*)))
 
 
 ;;;;
