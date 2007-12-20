@@ -29,6 +29,7 @@
 	   #:with-namespaces
 	   #:with-variables
 	   #:evaluate
+	   #:evaluate-thunk
 	   #:xpath
 	   #:first-node
 	   #:all-nodes

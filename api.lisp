@@ -93,7 +93,7 @@ end of its node set"
   '(or string function
     (cons (eql xpath) (cons t null))))
 
-(defun compile-xpath (xpath &optional environment)
+(defun compile-xpath (xpath environment)
   (unless (typep xpath 'xpath-expr)
     (xpath-error "invalid xpath designator: ~A" xpath))
   (if (functionp xpath)
@@ -101,33 +101,25 @@ end of its node set"
       (compile-xpath/sexpr (if (stringp xpath)
                                (parse-xpath xpath)
                                (second xpath))
-                           (or environment
-                               (make-lexical-environment
-                                *lexical-namespaces*
-				*lexical-variables*)))))
+                           environment)))
 
-(defun evaluate (xpath context)
+(defun evaluate-thunk (thunk context)
   "Evaluate an XPath expression specified by XPATH in specified CONTEXT"
-  ;; FIXME: Should this perhaps compute position and size based on 
+  ;; FIXME: Should this perhaps compute position and size based on
   ;; the node's siblings instead?
-  (funcall (compile-xpath xpath)
+  (funcall thunk
            (if (typep context 'context) context (make-context context))))
 
-(define-compiler-macro evaluate (&whole whole &environment env xpath context)
-  (if (not (typep xpath 'xpath-expr))
-      whole
-      (let ((namespaces (macroexpand '(lexical-namespaces) env))
-	    (variables (macroexpand '(lexical-variables) env)))
-        (cond (namespaces
-               `(evaluate (load-time-value
-			   (compile-xpath ,xpath
-					  (make-lexical-environment
-					   ',namespaces
-					   ',variables)))
-			  ,context))
-              (t
-               (warn "not using compiler macro because EVALUATE is used not inside with-namespaces")
-               whole)))))
+(defmacro evaluate (&environment env xpath context)
+  (let ((namespaces (or (macroexpand '(lexical-namespaces) env)
+			*initial-namespaces*))
+	(variables (macroexpand '(lexical-variables) env)))
+    `(evaluate-thunk (load-time-value
+		      (compile-xpath ,xpath
+				     (make-lexical-environment
+				      ',namespaces
+				      ',variables)))
+		     ,context)))
 
 ;; errors
 

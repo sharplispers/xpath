@@ -172,9 +172,6 @@
     ("xmlns" . #"http://www.w3.org/2000/xmlns/")
     ("xml" . #"http://www.w3.org/XML/1998/namespace")))
 
-(defparameter *lexical-namespaces* nil)
-(defparameter *lexical-variables* nil)
-
 (defmacro lexical-namespaces () nil)
 (defmacro lexical-variables () nil)
 
@@ -189,9 +186,8 @@
 		    collect (cons prefix uri))
 		 (or (macroexpand '(lexical-namespaces) env)
 		     *initial-namespaces*))))
-    `(let ((*lexical-namespaces* ',conses))
-       (macrolet ((lexical-namespaces () ',conses))
-	 ,@body))))
+    `(macrolet ((lexical-namespaces () ',conses))
+       ,@body)))
 
 (defun decode-lexical-qname (qname macro-env attributep)
   (multiple-value-bind (prefix local-name)
@@ -225,8 +221,7 @@
 		 for gensym in gensyms
 		 for (nil value) in bindings
 		 collect
-		   `(,gensym ,value))
-	    (*lexical-variables* ',alist))
+		   `(,gensym ,value)))
        (declare (special ,@gensyms))
        (macrolet ((lexical-variables () ',alist))
          ,@body))))

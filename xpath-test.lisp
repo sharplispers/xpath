@@ -301,8 +301,12 @@
 		"normalize-space('  abc  def')"
 		"normalize-space('  abc  def  ')"))))
 
+(deftest test-with-namespaces-0		;empty namespace need not be declared
+  (eq (first-node (evaluate "/div" *sample-xml*))
+      (dom:document-element *sample-xml*)))
+
 (deftest test-with-namespaces-1
-  (with-namespaces (("" ""))
+  (with-namespaces (("" ""))		;can declare empty namespace
     (eq (first-node (evaluate "/div" *sample-xml*))
 	(dom:document-element *sample-xml*))))
 
@@ -376,7 +380,7 @@
   (with-namespaces (("" ""))
     (with-variables (("somevar" (evaluate "/div" *sample-xml*)))
       (assert-equal "another-value"
-		    (evaluate (string "string($somevar/span[@class='another'])")
+		    (evaluate "string($somevar/span[@class='another'])"
 			      *sample-xml*)))))
 
 (deftest test-node-set-api
