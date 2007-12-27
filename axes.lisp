@@ -60,15 +60,20 @@ FIXME: need to implement all axes
 					       parent))))
 	empty-pipe)))
 
+;; FIXME: test
+;; FIXME: order
+
 (define-axis :following ()
-  (mappend-pipe (axis-function :following-sibling)
-		(funcall (axis-function :ancestor-or-self)
-			 node)))
+  (mappend-pipe (axis-function :descendant-or-self)
+		(mappend-pipe (axis-function :following-sibling)
+			      (funcall (axis-function :ancestor-or-self)
+				       node))))
 
 (define-axis :preceding ()
-  (mappend-pipe (axis-function :preceding-sibling)
-		(funcall (axis-function :ancestor-or-self)
-			 node)))
+  (mappend-pipe (axis-function :descendant-or-self)
+		(mappend-pipe (axis-function :preceding-sibling)
+			      (funcall (axis-function :ancestor-or-self)
+				       node))))
 
 (define-axis :ancestor ()
   (mappend-pipe (axis-function :ancestor-or-self)

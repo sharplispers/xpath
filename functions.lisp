@@ -124,6 +124,9 @@
 
 (define-xpath-function/single-type :string-length string (string) (length string))
 
+(define-xpath-function/single-type :normalize-space string (string)
+  (cl-ppcre::regex-replace-all "\\s+" (trim string) " "))
+
 ;; number functions
 
 (define-xpath-function/single-type :number string (value)

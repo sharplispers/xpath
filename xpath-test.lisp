@@ -295,7 +295,11 @@
      ("" "substring('12345', 0 div 0, 3)")
      ("" "substring('12345', 1, 0 div 0)")
      ("12345" "substring('12345', -42, 1 div 0)")
-     ("" "substring('12345', -1 div 0, 1 div 0)"))))
+     ("" "substring('12345', -1 div 0, 1 div 0)")
+     ("" "normalize-space('')" "normalize-space('   ')")
+     ("abc def" "normalize-space('abc def')"
+		"normalize-space('  abc  def')"
+		"normalize-space('  abc  def  ')"))))
 
 (deftest test-with-namespaces-1
   (with-namespaces (("" ""))
