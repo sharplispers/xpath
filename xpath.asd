@@ -19,7 +19,7 @@
                            (:file "test" :depends-on ("utils"))
                            (:file "pipes" :depends-on ("utils"))
                            (:file "regex" :depends-on ("utils" "test"))
-                           (:file "xml-utils" :depends-on ("regex" "utils"))
+                           (:file "xml-utils" :depends-on ("regex" "utils" "pipes"))
                            (:file "xnum" :depends-on ("utils" "test"))
                            (:file "types" :depends-on ("utils" "xnum" "pipes" "xml-utils"))
                            (:file "axes" :depends-on ("utils" "xnum" "pipes" "xml-utils"))

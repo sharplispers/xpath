@@ -372,9 +372,13 @@
 
 (deftest test-following
   (xpath:with-namespaces (("" ""))
-    (assert-equal 0 (xpath:evaluate "count(html/following::text())"
-				    (cxml:parse-rod "<html></html>"
-						    (cxml-dom:make-dom-builder))))))
+    (assert-equal* 0 (xpath:evaluate "count(html/following::text())"
+				     (cxml:parse-rod "<html></html>"
+						     (cxml-dom:make-dom-builder)))
+		   11 (xpath:evaluate "count(//following::div) * 10 + count(//div|body/div)"
+				     (cxml:parse-rod
+				      "<html><body><span></span><br/><div></div></body></html>"
+				      (cxml-dom:make-dom-builder))))))
 
 (deftest test-filtering
   (with-namespaces (("" ""))

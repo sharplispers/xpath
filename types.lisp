@@ -24,7 +24,14 @@
   "Return true if NODE-SET is empty"
   (pipe-empty-p (pipe-of node-set)))
 
-(defun make-node-set (pipe) (make-instance 'node-set :pipe pipe))
+(defun make-node-set (pipe)
+  (let ((visited (make-hash-table)))
+    (make-instance 'node-set
+		   :pipe (filter-pipe
+			  #'(lambda (item)
+			      (unless (gethash item visited)
+				(setf (gethash item visited) t)))
+			  pipe))))
 
 ;; equality
 

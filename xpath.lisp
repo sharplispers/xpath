@@ -58,8 +58,7 @@
 (defun xf-location-path (path)
   #'(lambda (context)
       (make-node-set
-       (force
-        (funcall path (context-node context))))))
+       (funcall path (context-node context)))))
 
 ;; compilation
 
