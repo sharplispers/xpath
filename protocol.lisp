@@ -47,6 +47,7 @@
 (defgeneric xpath-protocol:namespace-uri (node))
 (defgeneric xpath-protocol:processing-instruction-target (node))
 (defgeneric xpath-protocol:node-type-p (node type))
+(defgeneric xpath-protocol:base-uri (node))
 
 
 ;; helper functions
@@ -80,6 +81,10 @@
 
 (defmethod xpath-protocol:processing-instruction-target ((node dom:node))
   (dom:node-value node))
+
+(defmethod xpath-protocol:base-uri ((node dom:node))
+  ;; fixme
+  "")
 
 
 ;; DOM mapping: pipes

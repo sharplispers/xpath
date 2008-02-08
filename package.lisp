@@ -15,7 +15,9 @@
 	   #:string-value
 	   #:processing-instruction-target
 
-	   #:node-type-p))
+	   #:node-type-p
+
+	   #:base-uri))
 
 (defpackage :xpath
   (:use cl)
