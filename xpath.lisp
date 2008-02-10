@@ -50,20 +50,23 @@
          (let ((first-of-path (first steps))
                (rest-of-path (make-location-path (rest steps))))
            #'(lambda (node)
-               (multiple-value-bind (first-pipe result-ordering)
-		   (funcall first-of-path node)
+               (let ((first-pipe (funcall first-of-path node)))
 		 ;; we know that mappend-pipe will call the function eagerly
 		 ;; once at the beginning, so we will get a value for
 		 ;; for result-ordering before returning.
-		 (values
-		  (mappend-pipe (lambda (n)
-				  (multiple-value-bind (pipe ordering)
-				      (funcall rest-of-path n)
-				    (unless (eq ordering result-ordering)
-				      (setf result-ordering :unordered))
-				    pipe))
-				first-pipe)
-		  result-ordering)))))))
+		 (let ((result-ordering :unordered))
+		   (values
+		    (mappend-pipe (lambda (n)
+				    (multiple-value-bind (pipe ordering)
+					(funcall rest-of-path n)
+				      (setf result-ordering ordering)
+				      pipe))
+				  first-pipe)
+		    ;; can't use the child step's ordering if we are
+		    ;; unioning over multiple nodes:
+		    (if (pipe-tail first-pipe)
+			:unordered
+			result-ordering)))))))))
 
 ;; most basic primitive functions
 
@@ -229,4 +232,6 @@
 	      (if path-thunk
 		  (mappend-pipe path-thunk good-nodes)
 		  good-nodes))))
-	 :document-order))))
+	 (if steps
+	     :unordered
+	     :document-order)))))
