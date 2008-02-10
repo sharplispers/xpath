@@ -74,6 +74,12 @@
         ((pipe-empty-p (pipe-of node-set)) "")
         (t (xpath-protocol:local-name (textually-first-node node-set)))))
 
+(define-xpath-function/single-type :name node-set (&optional node-set)
+  (cond ((null node-set)
+	 (xpath-protocol:qualified-name (context-node context)))
+        ((pipe-empty-p (pipe-of node-set)) "")
+        (t (xpath-protocol:qualified-name (textually-first-node node-set)))))
+
 ;; helper function for the | operator, not in the keyword package:
 (define-xpath-function/single-type union node-set (node-set-1 node-set-2)
   ;; Need to sort on document order, see copy_copy47, copy_copy48
