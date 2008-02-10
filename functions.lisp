@@ -72,7 +72,7 @@
 (define-xpath-function/single-type :local-name node-set (&optional node-set)
   (cond ((null node-set) (xpath-protocol:local-name (context-node context))) ;; FIXME: root?
         ((pipe-empty-p (pipe-of node-set)) "")
-        (t (xpath-protocol:local-name (pipe-head (pipe-of node-set))))))
+        (t (xpath-protocol:local-name (textually-first-node node-set)))))
 
 ;; helper function for the | operator, not in the keyword package:
 (define-xpath-function/single-type union node-set (node-set-1 node-set-2)

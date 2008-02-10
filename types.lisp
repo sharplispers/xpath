@@ -203,7 +203,7 @@
         (node-set
          (if (pipe-empty-p (pipe-of value))
              ""
-             (get-node-text (pipe-head (pipe-of value)))))
+             (get-node-text (textually-first-node value))))
         (t (if value "true" "false")))))
 
 (defun node-set-value (value)
