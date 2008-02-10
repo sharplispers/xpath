@@ -50,6 +50,13 @@ FIXME: need to implement all axes
 	     (mappend-pipe (axis-function :descendant-or-self)
 			   (xpath-protocol:child-pipe node))))
 
+;; internal helper axis
+(define-axis reverse-descendant-or-self (:reverse-document-order)
+  (append-pipes (mappend-pipe (axis-function 'reverse-descendant-or-self)
+			      (reverse
+			       (force (xpath-protocol:child-pipe node))))
+		(list node)))
+
 (define-axis :descendant (:document-order)
   (mappend-pipe (axis-function :descendant-or-self)
                 (xpath-protocol:child-pipe node)))
@@ -76,7 +83,7 @@ FIXME: need to implement all axes
 				       node))))
 
 (define-axis :preceding (:reverse-document-order)
-  (mappend-pipe (axis-function :descendant-or-self)
+  (mappend-pipe (axis-function 'reverse-descendant-or-self)
 		(mappend-pipe (axis-function :preceding-sibling)
 			      (funcall (axis-function :ancestor-or-self)
 				       node))))
