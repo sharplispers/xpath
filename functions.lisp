@@ -82,7 +82,12 @@
 
 ;; string functions
 
-(define-xpath-function/single-type :string string (string) string)
+(define-xpath-function/lazy :string (&optional string)
+  (if string
+      (lambda (ctx)
+	(string-value (funcall string ctx)))
+      (lambda (ctx)
+	(string-value (context-node ctx)))))
 
 (define-xpath-function/single-type :concat string (&rest strings)
   (reduce #'concat strings))
@@ -141,8 +146,13 @@
       (lambda (ctx)
 	(length (string-value (context-node ctx))))))
 
-(define-xpath-function/single-type :normalize-space string (string)
-  (cl-ppcre::regex-replace-all "\\s+" (trim string) " "))
+(define-xpath-function/lazy :normalize-space (&optional string)
+  (lambda (ctx)
+    (let ((string
+	   (string-value (if string
+			     (funcall string ctx)
+			     (context-node ctx)))))
+      (cl-ppcre::regex-replace-all "\\s+" (trim string) " "))))
 
 (define-xpath-function/single-type :translate string (string from to)
   (map 'string
