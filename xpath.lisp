@@ -207,8 +207,11 @@
 	  (let ((initial-node-set (funcall filter-thunk context)))
 	    (unless (typep initial-node-set 'node-set)
 	      (xpath-error "not a node set: ~A" initial-node-set))
-	    (let ((good-nodes
-		   (funcall predicate-thunk (pipe-of initial-node-set))))
+	    (let* ((sorted-nodes
+		    ;; sort on document order:
+		    (sort (copy-list (force (pipe-of initial-node-set)))
+			  #'node<))
+		   (good-nodes (funcall predicate-thunk sorted-nodes)))
 	      (if path-thunk
 		  (mappend-pipe path-thunk good-nodes)
 		  good-nodes))))))))

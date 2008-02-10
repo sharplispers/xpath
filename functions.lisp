@@ -76,7 +76,12 @@
 
 ;; helper function for the | operator, not in the keyword package:
 (define-xpath-function/single-type union node-set (node-set-1 node-set-2)
-  (make-node-set (append-pipes (pipe-of node-set-1) (pipe-of node-set-2))))
+  ;; Need to sort on document order, see copy_copy47, copy_copy48
+  ;; It's what users would want anyway.
+  (make-node-set
+   (sort (copy-list (append (force (pipe-of node-set-1))
+			    (force (pipe-of node-set-2))))
+	 #'node<)))
 
 ;; TODO: id, name, namespace-uri
 

@@ -35,6 +35,71 @@
 
 ;; equality
 
+(defun node< (a b)
+  "Compare nodes according to document order."
+  (let* ((pp (force (funcall (axis-function :ancestor-or-self) a)))
+	 (qq (force (funcall (axis-function :ancestor-or-self) b)))
+	 (n (min (length pp) (length qq)))
+	 (pp (last pp n))
+	 (qq (last qq n)))
+    (cond
+      ((eq b (car pp))
+       ;; same node, or b is an ancestor of a
+       nil)
+      ((eq a (car qq))
+       ;; a is an ancestor of b
+       t)
+      (t
+       ;; now pp and qq are different paths, leading to a common ancestor
+       ;; somewhere:
+       (loop
+	  for (p nextp) on pp
+	  for (q nextq) on qq
+	  if (eq nextp nextq)
+	  do (return
+	       (let ((pa? (xpath-protocol:node-type-p p :attribute))
+		     (qa? (xpath-protocol:node-type-p q :attribute))
+		     (pn? (xpath-protocol:node-type-p p :namespace))
+		     (qn? (xpath-protocol:node-type-p q :namespace)))
+		 (cond
+		   ;; special case for namespace and attribute of the same node
+		   ;; namespaces come first:
+		   ((and pn? qa?)
+		    t)
+		   ((and pa? qn?)
+		    nil)
+		   ;; I don't think that there's really an order defined
+		   ;; for attributes, but axes_axes58 makes it sound like
+		   ;; there is, so let's compare them according to the axis
+		   ((and pa? qa?)
+		    (enumerate (funcall (axis-function :attribute) nextp)
+			       :key (lambda (x)
+				      (when (eq x p)
+					(return t))
+				      (when (eq x q)
+					(return nil)))
+			       :result :error))
+		   ;; namespaces and attributes both come before children:
+		   ((or pa? pn?)
+		    t)
+		   ((or qa? qn?)
+		    nil)
+		   ;; in the normal case, walk the children:
+		   (t
+		    (enumerate
+		     (funcall (axis-function :following-sibling) p)
+		     :key (lambda (after-p)
+			    (when (eq after-p q)
+			      (return t)))
+		     :result nil)))))
+	  finally
+	  ;; oops: someone tried to compare nodes from different
+	  ;; documents.  Can happen with XSLT, can't do anything about it.
+	  (return 0))))))
+
+(defun sort-nodes (pipe)
+  (sort (copy-list (force pipe)) #'node<))
+
 (defun compare-node-sets (op a b) ;; FIXME: may be inefficient in some cases
   (if (eq op 'equal)
       (let ((table (make-hash-table :test #'equal)))
