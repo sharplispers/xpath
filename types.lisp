@@ -8,7 +8,8 @@
 ;; * string (a sequence of UCS characters) --> string
 
 (defclass node-set ()
-  ((pipe :accessor pipe-of :initform empty-pipe :initarg :pipe)))
+  ((pipe :accessor pipe-of :initform empty-pipe :initarg :pipe)
+   (ordering :accessor ordering-of :initform :unordered :initarg :ordering)))
 
 (defmethod print-object ((object node-set) stream)
   (print-unreadable-object (object stream :type t :identity t)
@@ -24,14 +25,44 @@
   "Return true if NODE-SET is empty"
   (pipe-empty-p (pipe-of node-set)))
 
-(defun make-node-set (pipe)
+(defun make-node-set (pipe &optional (ordering :unordered))
   (let ((visited (make-hash-table)))
     (make-instance 'node-set
 		   :pipe (filter-pipe
 			  #'(lambda (item)
 			      (unless (gethash item visited)
 				(setf (gethash item visited) t)))
-			  pipe))))
+			  pipe)
+		   :ordering ordering)))
+
+(defun sorted-pipe-of (node-set)
+  (sort-pipe (pipe-of node-set) (ordering-of node-set)))
+
+(defun sort-pipe (pipe &optional (ordering :unordered))
+  (ecase ordering
+    (:document-order
+     pipe)
+    (:reverse-document-order
+     (reverse (force pipe)))
+    (:unordered
+     (sort (copy-list (force pipe)) #'node<))))
+
+(defun textually-first-node (node-set)
+  (let ((pipe (pipe-of node-set)))
+    (ecase (ordering-of node-set)
+      (:document-order
+       (car pipe))
+      (:reverse-document-order
+       (let (result)
+	 (enumerate pipe :key (lambda (elt) (setf result elt)))
+	 result))
+      (:unordered
+       (let ((result (car pipe)))
+	 (enumerate (pipe-tail pipe)
+		    :key (lambda (elt)
+			   (when (node< elt result)
+			     (setf result elt))))
+	 result)))))
 
 ;; equality
 
@@ -179,7 +210,7 @@
   (cond ((node-set-p value)
          value)
         ((xpath-protocol:node-p value)
-         (make-node-set (list value)))
+         (make-node-set (list value) :document-order))
         (t
          (error "cannot convert ~s to a NODE-SET" value))))
 

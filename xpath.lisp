@@ -8,12 +8,16 @@
 (defun make-location-step (axis node-test predicates environment)
   (assert (axis-function axis) () "unknown axis: ~s" axis)
   (let ((predicate-closure (compile-predicates predicates environment)))
-    #'(lambda (node)
-	(funcall predicate-closure
-		 (filter-pipe #'(lambda (node)
-				  (funcall node-test node
-					   (axis-principal-node-type axis)))
-			      (funcall (axis-function axis) node))))))
+    (multiple-value-bind (axis-function axis-ordering)
+	(axis-properties axis)
+      #'(lambda (node)
+	  (values
+	   (funcall predicate-closure
+		    (filter-pipe #'(lambda (node)
+				     (funcall node-test node
+					      (axis-principal-node-type axis)))
+				 (funcall axis-function node)))
+	   axis-ordering)))))
 
 (defun compile-predicates (predicates environment)
   (labels ((do-compile (predicates)
@@ -46,8 +50,20 @@
          (let ((first-of-path (first steps))
                (rest-of-path (make-location-path (rest steps))))
            #'(lambda (node)
-               (mappend-pipe rest-of-path
-                             (funcall first-of-path node)))))))
+               (multiple-value-bind (first-pipe result-ordering)
+		   (funcall first-of-path node)
+		 ;; we know that mappend-pipe will call the function eagerly
+		 ;; once at the beginning, so we will get a value for
+		 ;; for result-ordering before returning.
+		 (values
+		  (mappend-pipe (lambda (n)
+				  (multiple-value-bind (pipe ordering)
+				      (funcall rest-of-path n)
+				    (unless (eq ordering result-ordering)
+				      (setf result-ordering :unordered))
+				    pipe))
+				first-pipe)
+		  result-ordering)))))))
 
 ;; most basic primitive functions
 
@@ -57,8 +73,8 @@
 
 (defun xf-location-path (path)
   #'(lambda (context)
-      (make-node-set
-       (funcall path (context-node context)))))
+      (multiple-value-call #'make-node-set
+	(funcall path (context-node context)))))
 
 ;; compilation
 
@@ -207,11 +223,10 @@
 	  (let ((initial-node-set (funcall filter-thunk context)))
 	    (unless (typep initial-node-set 'node-set)
 	      (xpath-error "not a node set: ~A" initial-node-set))
-	    (let* ((sorted-nodes
-		    ;; sort on document order:
-		    (sort (copy-list (force (pipe-of initial-node-set)))
-			  #'node<))
-		   (good-nodes (funcall predicate-thunk sorted-nodes)))
+	    (let* ((good-nodes
+		    (funcall predicate-thunk
+			     (sorted-pipe-of initial-node-set))))
 	      (if path-thunk
 		  (mappend-pipe path-thunk good-nodes)
-		  good-nodes))))))))
+		  good-nodes))))
+	 :document-order))))
