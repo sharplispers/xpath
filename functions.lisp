@@ -108,7 +108,17 @@
                         (1+ (length string))
                         (min end (1+ (length string)))))))))
 
+(define-xpath-function/eager :starts-with (string prefix)
+  (let* ((string (string-value string))
+         (prefix (string-value prefix))
+	 (i (mismatch string prefix)))
+    (and (or (null i)
+	     (eql i (length prefix)))
+	 t)))
+
 ;; FIXME: corner case: empty substring?
+;; [looks correct to me.  XPath 2.0 agrees that the empty string is
+;; returned if the second argument is the empty string. --dfl]
 (define-xpath-function/single-type :substring-before string (string substring)
   (let ((p (search substring string)))
     (if (null p)
@@ -116,16 +126,32 @@
         (subseq string 0 p))))
 
 ;; FIXME: corner case: empty substring?
+;; [looks correct to me.  XPath 2.0 agrees that the first argument is
+;; returned if the second argument is the empty string. --dfl]
 (define-xpath-function/single-type :substring-after string (string substring)
   (let ((p (search substring string)))
     (if (null p)
         ""
         (subseq string (+ p (length substring))))))
 
-(define-xpath-function/single-type :string-length string (string) (length string))
+(define-xpath-function/lazy :string-length (&optional string)
+  (if string
+      (lambda (ctx)
+	(length (string-value (funcall string ctx))))
+      (lambda (ctx)
+	(length (string-value (context-node ctx))))))
 
 (define-xpath-function/single-type :normalize-space string (string)
   (cl-ppcre::regex-replace-all "\\s+" (trim string) " "))
+
+(define-xpath-function/single-type :translate string (string from to)
+  (map 'string
+       (lambda (c)
+	 (let ((i (position c from)))
+	   (if i
+	       (elt to i)
+	       c)))
+       string))
 
 ;; number functions
 
