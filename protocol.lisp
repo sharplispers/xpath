@@ -120,6 +120,9 @@
   prefix
   uri)
 
+(defmethod xpath-protocol:node-p ((node dom-namespace))
+  t)
+
 (defmethod xpath-protocol:child-pipe ((node dom-namespace)) empty-pipe)
 (defmethod xpath-protocol:attribute-pipe ((node dom-namespace)) empty-pipe)
 (defmethod xpath-protocol:namespace-pipe ((node dom-namespace)) empty-pipe)
