@@ -48,7 +48,7 @@
 (defgeneric xpath-protocol:processing-instruction-target (node))
 (defgeneric xpath-protocol:node-type-p (node type))
 (defgeneric xpath-protocol:base-uri (node))
-
+(defgeneric xpath-protocol:get-element-by-id (node id))
 
 ;; helper functions
 
@@ -62,6 +62,9 @@
 ;; DOM mapping: simple slots
 
 (defmethod xpath-protocol:node-p ((node dom:node)) t)
+
+(defmethod xpath-protocol:parent-node ((node dom:attr))
+  (dom:owner-element node))
 
 (defmethod xpath-protocol:parent-node ((node dom:node))
   (dom:parent-node node))
@@ -224,3 +227,7 @@
   (deftypemapping dom:attr :attribute)
   (deftypemapping dom:element :element)
   (deftypemapping dom-namespace :namespace))
+
+(defmethod xpath-protocol:get-element-by-id ((node dom:node) id)
+  (dom:get-element-by-id
+   (if (dom:document-p node) node (dom:owner-document node)) id))

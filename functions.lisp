@@ -80,6 +80,12 @@
         ((pipe-empty-p (pipe-of node-set)) "")
         (t (xpath-protocol:qualified-name (textually-first-node node-set)))))
 
+(define-xpath-function/single-type :namespace-uri node-set (&optional node-set)
+  (cond ((null node-set)
+	 (xpath-protocol:namespace-uri (context-node context)))
+        ((pipe-empty-p (pipe-of node-set)) "")
+        (t (xpath-protocol:namespace-uri (textually-first-node node-set)))))
+
 ;; helper function for the | operator, not in the keyword package:
 (define-xpath-function/single-type union node-set (node-set-1 node-set-2)
   ;; Need to sort on document order, see copy_copy47, copy_copy48
@@ -88,7 +94,32 @@
    (sort-pipe (append-pipes (pipe-of node-set-1) (pipe-of node-set-2)))
    :document-order))
 
-;; TODO: id, name, namespace-uri
+(define-xpath-function/single-type :sum node-set (node-set)
+  (let ((sum 0))
+    (block nil
+      (enumerate (pipe-of node-set)
+		 :key #'(lambda (node)
+			  (let ((num (number-value node)))
+			    (if (nan-p num)
+				(return :nan)
+				(setf sum (xnum-+ sum num))))))
+      sum)))
+
+(define-xpath-function/eager :id (object)
+  (labels ((get-by-ids (ids)
+	     (let ((ids (trim (string-value ids))))
+	       (if (zerop (length ids))
+		   empty-pipe
+		   (filter-pipe (complement #'null)
+				(map-pipe #'(lambda (id)
+					      (xpath-protocol:get-element-by-id
+					       (context-node context) id))
+					  (cl-ppcre:split "\\s+" ids)))))))
+    (make-node-set
+     (sort-pipe
+      (if (node-set-p object)
+	  (mappend-pipe #'get-by-ids (pipe-of object))
+	  (get-by-ids object))))))
 
 ;; string functions
 
@@ -177,6 +208,15 @@
 
 (define-xpath-function/single-type :number string (value)
   (number-value value))
+
+(define-xpath-function/single-type :floor number (value)
+  (xnum-floor value))
+
+(define-xpath-function/single-type :round number (value)
+  (xnum-round value))
+
+(define-xpath-function/single-type :ceiling number (value)
+  (xnum-ceiling value))
 
 (macrolet ((numop (op lisp-op)
              `(define-xpath-function/single-type ,op number (a b) (,lisp-op a b))))

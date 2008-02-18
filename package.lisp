@@ -17,7 +17,9 @@
 
 	   #:node-type-p
 
-	   #:base-uri))
+	   #:base-uri
+
+	   #:get-element-by-id))
 
 (defpackage :xpath
   (:use cl)

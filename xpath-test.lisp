@@ -9,38 +9,64 @@
                       (format t "~&-------~%"))))
 
 (defparameter *sample-xml*
-  (cxml:parse-rod
-   (concat
-    "<div class='something'>"
-    "<a href='zzz'>"
-    "<span class='sample'>val1</span>"
-    "val2"
-    "</a>"
-    "<a href='qqq' id='a2'>"
-    "<span class='sample'>val3</span>"
-    "<span><br/></span>"
-    "</a>"
-    "<span class='another'>another-value</span>"
-    "<span class='yetanother' id='s5'>42<hr/></span>"
-    "</div>")
-   (cxml-dom:make-dom-builder)))
+  (concat
+   "<?xml version=\"1.0\"?>"
+   "<div class='something'>"
+   "<a href='zzz'>"
+   "<span class='sample'>val1</span>"
+   "val2"
+   "</a>"
+   "<a href='qqq' id='a2'>"
+   "<span class='sample'>val3</span>"
+   "<span><br/></span>"
+   "</a>"
+   "<span class='another'>another-value</span>"
+   "<span class='yetanother' id='s5'>42<hr/></span>"
+   "<h4>5</h4>"
+   "</div>"))
 
 (defparameter *sample-xml-2*
-  (cxml:parse-rod
-   (concat
-    "<div class='something' xmlns:special='http://special'>"
-    "<special:a href='zzz'>"
-    "<span class='sample'>val1</span>"
-    "val2"
-    "</special:a>"
-    "<a href='qqq' id='a2'>"
-    "<span class='sample'>val3</span>"
-    "<span><br/></span>"
-    "</a>"
-    "<special:span class='another'>another-value</special:span>"
-    "<span class='yetanother' id='s5'>42<hr/></span>"
-    "</div>")
-   (cxml-dom:make-dom-builder)))
+  (concat
+   "<div class='something' xmlns:special='http://special'>"
+   "<special:a href='zzz'>"
+   "<span class='sample'>val1</span>"
+   "val2"
+   "</special:a>"
+   "<a href='qqq' id='a2'>"
+   "<span class='sample'>val3</span>"
+   "<span><br/></span>"
+   "</a>"
+   "<special:span class='another'>another-value</special:span>"
+   "<span class='yetanother' id='s5'>42<hr/></span>"
+   "</div>"))
+
+(defparameter *sample-xml-3*
+  "<?xml version='1.0'?>
+<!DOCTYPE main [
+  <!ELEMENT main (a|b)*>
+  <!ELEMENT a (#PCDATA)>
+  <!ATTLIST a id ID #REQUIRED>
+  <!ELEMENT b (#PCDATA)>
+]>
+<main>
+  <a id='w'>W</a>
+  <a id='x'>X</a>
+  <a id='y'>Y</a>
+  <a id='z'>Z</a>
+  <b>y</b>
+  <b>w</b>
+  <b>x</b>
+</main>")
+
+(defparameter *dom-builder* (cxml-dom:make-dom-builder))
+(defparameter *document-element* #'dom:document-element)
+
+(defmacro define-xpath-test (name &body body)
+  `(deftest ,name
+     (let ((*sample-xml* (cxml:parse-rod *sample-xml* *dom-builder*))
+	   (*sample-xml-2* (cxml:parse-rod *sample-xml-2* *dom-builder*))
+	   (*sample-xml-3* (cxml:parse-rod *sample-xml-3* *dom-builder*)))
+       ,@body)))
 
 (defun join-xpath-result (result)
   (if (node-set-p result)
@@ -50,11 +76,11 @@
 (defun sample-node-set (&optional (xml ""))
   (make-node-set
    (xpath-protocol:child-pipe
-    (dom:document-element
-     (cxml:parse-rod (format nil "<div>~a</div>" xml)
-                     (cxml-dom:make-dom-builder))))))
+    (funcall *document-element*
+	     (cxml:parse-rod (format nil "<div>~a</div>" xml)
+			     *dom-builder*)))))
 
-(deftest test-values
+(define-xpath-test test-values
   (assert-equal*
    t (boolean-value t)
    t (boolean-value 123)
@@ -76,7 +102,7 @@
   (let ((node-set (sample-node-set "<span/>")))
     (assert (eq node-set (node-set-value node-set)))))
 
-(deftest test-comparison
+(define-xpath-test test-comparison
   (flet ((2values (a b)
            (sample-node-set (format nil "<a href='zzz'>~a</a><span>~a</span>" a b))))
     (assert* (compare-values 'equal 1 1)
@@ -128,25 +154,29 @@
              (not (compare-values '< (2values 9 10) (2values 3 4)))
              (not (compare-values '<= (2values 9 10) (2values 3 4))))))
 
-(defmacro verify-xpath* (&rest items)
-  (maybe-progn
-   (loop for (expected . xpaths) in items
-         append
-         (loop for xpath in xpaths
-               collect
-               `(assert-equal
-                       ,expected
-                        (join-xpath-result
-                         (evaluate
-                          ,(if (stringp xpath)
-                               xpath
-                               `'(xpath ,xpath))
-                          (make-context *sample-xml*))))))))
+(defmacro verify-xpath* (xml &rest items)
+  (once-only (xml)
+    (maybe-progn
+     (loop for (expected . xpaths) in items
+	   append
+	   (loop for xpath in xpaths
+		 collect
+		 `(progn
+		    (format *debug-io* "~&testing: ~s -> ~s" ',xpath ',expected)
+		    (assert-equal
+		     ,expected
+		     (join-xpath-result
+		      (evaluate
+		       ,(if (stringp xpath)
+			    xpath
+			    `'(xpath ,xpath))
+		       (make-context ,xml))))))))))
 
 ;; TODO: test * and :text node tests; test returning multiple items; add other funcs; fix xf-equal
-(deftest test-xpath
+(define-xpath-test test-xpath
   (with-namespaces ()
     (verify-xpath*
+     *sample-xml*
      ("zzz|||qqq"
       (:path
        (:descendant "a")
@@ -299,30 +329,43 @@
      ("" "normalize-space('')" "normalize-space('   ')")
      ("abc def" "normalize-space('abc def')"
 		"normalize-space('  abc  def')"
-		"normalize-space('  abc  def  ')"))))
+		"normalize-space('  abc  def  ')")
+     ("47" "sum(//span[@id='s5']|//h4)")
+     ("0" "sum(//span[.!=.])")
+     ("NaN" "sum(//span)"))
+    (verify-xpath*
+     *sample-xml-3*
+     ("W" (:id "w") "id('w')")
+     ("X" (:id "x") "id('x')")
+     ("Y" (:id "y") "id('y')")
+     ("Z" (:id "z") "id('z')")
+     ("W|||X|||Y|||Z" (:id "z y w x") "id('z y w x')")
+     ("W|||Y|||Z" (:id "  z y w  ") "id('  z y w  ')")
+     ("a" (:local-name (:id "w")) "local-name(id('w'))")
+     ("W|||X|||Y" (:id (:path (:child "main") (:child "b"))) "id(main/b)"))))
 
-(deftest test-with-namespaces-0		;empty namespace need not be declared
+(define-xpath-test test-with-namespaces-0		;empty namespace need not be declared
   (eq (first-node (evaluate "/div" *sample-xml*))
-      (dom:document-element *sample-xml*)))
+      (funcall *document-element* *sample-xml*)))
 
-(deftest test-with-namespaces-1
+(define-xpath-test test-with-namespaces-1
   (with-namespaces (("" ""))		;can declare empty namespace
     (eq (first-node (evaluate "/div" *sample-xml*))
-	(dom:document-element *sample-xml*))))
+	(funcall *document-element* *sample-xml*))))
 
-(deftest test-with-namespaces-2
+(define-xpath-test test-with-namespaces-2
   (with-namespaces (("foo" "http://special"))
     (eql 1 (length (all-nodes (evaluate "//foo:a" *sample-xml-2*))))))
 
-(deftest test-with-namespaces-3
+(define-xpath-test test-with-namespaces-3
   (with-namespaces (("foo" "http://special"))
     (eql 2 (length (all-nodes (evaluate "//foo:*" *sample-xml-2*))))))
 
 (with-namespaces (("foo" "http://special"))
-  (deftest test-with-namespaces-4
+  (define-xpath-test test-with-namespaces-4
     (eql 2 (length (all-nodes (evaluate "//foo:*" *sample-xml-2*))))))
 
-(deftest test-with-namespaces-5
+(define-xpath-test test-with-namespaces-5
   (handler-case
       (funcall (compile nil
 			`(lambda ()
@@ -333,19 +376,19 @@
     (:no-error (x)
       (error "test failed with return value ~A" x))))
 
-(deftest test-with-variables-1
+(define-xpath-test test-with-variables-1
   (with-namespaces (("" ""))
     (with-variables (("foo" 3))
       (eql (number-value (evaluate "$foo" *sample-xml*)) 3))))
 
-(deftest test-with-variables-2
+(define-xpath-test test-with-variables-2
   (with-namespaces (("" "")
 		    ("ns" "http://foo"))
     (with-variables (("foo" 2)
 		     ("ns:foo" 3))
       (eql (number-value (evaluate "$foo + $ns:foo" *sample-xml*)) 5))))
 
-(deftest test-with-variables-3
+(define-xpath-test test-with-variables-3
   (handler-case
       (funcall (compile nil
 			`(lambda ()
@@ -358,36 +401,36 @@
     (:no-error (x)
       (error "test failed with return value ~A" x))))
 
-(deftest test-computed-with-variables
+(define-xpath-test test-computed-with-variables
   (with-namespaces (("" ""))
     (with-variables (("foo" (* 3 5)))
       (eql (number-value (evaluate "$foo" *sample-xml*)) 15))))
 
-(deftest test-eager-with-variable-evaluation
+(define-xpath-test test-eager-with-variable-evaluation
   (let ((n 0))
     (with-namespaces (("" ""))
       (with-variables (("foo" (incf n)))
 	(evaluate "$foo" *sample-xml*)))
     (assert-equal n 1)))
 
-(deftest test-following
+(define-xpath-test test-following
   (xpath:with-namespaces (("" ""))
     (assert-equal* 0 (xpath:evaluate "count(html/following::text())"
 				     (cxml:parse-rod "<html></html>"
-						     (cxml-dom:make-dom-builder)))
+						     *dom-builder*))
 		   11 (xpath:evaluate "count(//following::div) * 10 + count(//div|body/div)"
 				     (cxml:parse-rod
 				      "<html><body><span></span><br/><div></div></body></html>"
-				      (cxml-dom:make-dom-builder))))))
+				      *dom-builder*)))))
 
-(deftest test-filtering
+(define-xpath-test test-filtering
   (with-namespaces (("" ""))
     (with-variables (("somevar" (evaluate "/div" *sample-xml*)))
       (assert-equal "another-value"
 		    (evaluate "string($somevar/span[@class='another'])"
 			      *sample-xml*)))))
 
-(deftest test-node-set-api
+(define-xpath-test test-node-set-api
   (labels ((join (list)
              (format nil "~{~a~^|||~}" list))
            (verify-results (expected-str xml)
