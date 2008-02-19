@@ -19,7 +19,10 @@
 
 	   #:base-uri
 
-	   #:get-element-by-id))
+	   #:get-element-by-id)
+  (:documentation
+   "XPATH-PROTOCOL package contains generic functions that are used to support
+    multiple representations of XML documents for XPath."))
 
 (defpackage :xpath
   (:use cl)
@@ -33,7 +36,7 @@
 	   #:with-namespaces
 	   #:with-variables
 	   #:evaluate
-	   #:evaluate-thunk
+	   #:evaluate-compiled
 	   #:xpath
 	   #:first-node
 	   #:all-nodes
@@ -55,4 +58,6 @@
 	   #:environment-find-namespace
 	   #:environment-find-variable
 
-	   #:xpath-error))
+	   #:xpath-error)
+  (:documentation
+   "Plexippus XPath is an XPath implementation for Common Lisp."))

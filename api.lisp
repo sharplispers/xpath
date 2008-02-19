@@ -33,25 +33,55 @@
 ;; public evaluation API
 
 (defun first-node (node-set)
-  "Get the first node of a NODE-SET"
+  "@arg[node-set]{a @class{node-set}}
+   @return{a @class{node-set} or nil}
+   Returns the first node in the @code{node-set} or nil if it's empty."
   (pipe-head (pipe-of node-set)))
 
 (defun all-nodes (node-set)
-  "Retrieve all nodes of a NODE-SET as a list"
+  "@arg[node-set]{a @class{node-set}}
+   @return{a list of nodes}
+   Returns all nodes of the @code{node-set} as a list."
   (force (pipe-of node-set)))
 
 (defun map-node-set (func node-set)
-  "Call FUNC for each node in NODE-SET"
+  "@arg[func]{a function}
+   @arg[node-set]{a @class{node-set}}
+   @return{nil}
+   @short{Calls @code{func} for each node in @code{node-set}}
+
+   The operation is performed lazily, i.e. if it's terminated via
+   a non-local exit it doesn't necessarily cause the XPath engine to find
+   out all nodes in the @class{node-set} internally."
   (enumerate (pipe-of node-set) :key func :result nil))
 
 (defun map-node-set->list (func node-set)
+  "@arg[func]{a function}
+   @arg[node-set]{a @class{node-set}}
+   @return{a list}
+   @short{Calls @code{func} for each node in @code{node-set} and conses up
+   a list of its return values}
+
+   The operation is performed lazily, i.e. if it's terminated via
+   a non-local exit it doesn't necessarily cause the XPath engine to find
+   out all nodes in the @class{node-set} internally."
   (loop for pipe = (pipe-of node-set) then (pipe-tail pipe)
         while (not (pipe-empty-p pipe))
         collect (funcall func (pipe-head pipe))))
 
 (defmacro do-node-set ((var node-set &optional result) &body body)
-  "Execute BODY for each node in NODE-SET binding VAR to the current node.
-Return value of RESULT form or NIL if it doesn't specified."
+  "@arg[var]{symbol, a variable name}
+   @arg[node-set]{a @class{node-set}}
+   @arg[result]{a form}
+   @return{the result of evaluating @code{result}}
+   @short{Executes @code{body} with @code{var} bound to successive nodes
+     in @code{node-set}}
+
+   The operation is performed lazily, i.e. if it's terminated via
+   a non-local exit it doesn't necessarily cause the XPath engine to find
+   out all nodes in the @class{node-set} internally.
+
+   Returns nil if @code{result} form isn't specified."
   (check-type var symbol)
   `(block nil
      (map-node-set #'(lambda (,var) ,@body) ,node-set)
@@ -63,30 +93,44 @@ Return value of RESULT form or NIL if it doesn't specified."
   pipe)
 
 (defun make-node-set-iterator (node-set)
-  "Create a node set iterator for NODE-SET"
+  "@arg[node-set]{a @class{node-set}}
+   @return{a node-set iterator}
+   @short{Creates a node set iterator for @code{node-set}}
+
+  Node set iterators can be used to iterate over node-sets.
+  This can be done without causing the XPath engine to find out
+  all their nodes and using non-local exits."
   (%make-node-set-iterator (pipe-of node-set)))
 
 (defun node-set-iterator-end-p (iterator)
-  "Return true if ITERATOR points to the end of its node set"
+  "@arg[iterator]{a node-set iterator returned by @see{make-node-set-iterator}}
+   @return{a generalized boolean}
+   Returns true if @code{iterator} points to the end of its node set"
   (pipe-empty-p (node-set-iterator-pipe iterator)))
 
 (defun node-set-iterator-next (iterator)
-  "Advance ITERATOR if it's not at the end of its node set,
-do nothing otherwise. Returns ITERATOR"
+  "@arg[iterator]{a node-set iterator returned by @see{make-node-set-iterator}}
+   @return{the value of @code{iterator}}
+   Advances @code{iterator} if it's not at the end of its node set,
+   does nothing otherwise."
   (unless (node-set-iterator-end-p iterator)
     (setf (node-set-iterator-pipe iterator)
           (pipe-tail (node-set-iterator-pipe iterator))))
   iterator)
 
 (defun node-set-iterator-current (iterator)
-  "Return current node of ITERATOR or nil if it's at the
-end of its node set"
+  "@arg[iterator]{a node-set iterator returned by @see{make-node-set-iterator}}
+   @return{a node or nil}
+   Returns current node of @code{iterator} or nil if it's at the end
+   of its node set."
   (if (node-set-iterator-end-p iterator)
       nil
       (pipe-head (node-set-iterator-pipe iterator))))
 
 (defmacro xpath (form)
-  "Used to specify sexpr-based XPath expression"
+  "@arg[form]{a sexpr-based XPath form}
+   @return{a list consisting of symbol XPATH and the @code{form}}
+   This macro is used to specify sexpr-based XPath expression for @see{evaluate}"
   `(list 'xpath ',form))
 
 (deftype xpath-expr ()
@@ -94,6 +138,14 @@ end of its node set"
     (cons (eql xpath) (cons t null))))
 
 (defun compile-xpath (xpath environment)
+  "@arg[xpath]{an XPath expression}
+   @return{a compiled XPath expression}
+   @short{Compiles an XPath expression}
+
+   The @code{xpath} expression is compiled using current environment if it isn't
+   compiled yet. @code{xpath} can be a string, a sexpr-based XPath epression or
+   a compiled expression. In the latter case @code{xpath} argument value itself
+   is returned."
   (unless (typep xpath 'xpath-expr)
     (xpath-error "invalid xpath designator: ~A" xpath))
   (if (functionp xpath)
@@ -103,23 +155,37 @@ end of its node set"
                                (second xpath))
                            environment)))
 
-(defun evaluate-thunk (thunk context)
-  "Evaluate an XPath expression specified by XPATH in specified CONTEXT"
+(defun evaluate-compiled (compiled-xpath context)
+  "@arg[compiled-xpath]{a compiled XPath expression}
+   @arg[context]{an XPath context}
+   @return{the result of evaluating @code{compiled-xpath} within the @code{context}}
+   @short{Evaluates a compiled XPath expression returned by @see{compile-xpath}}
+
+   The @code{context} can be obtained using @see{make-context}. As an alternative,
+   a node can be specifed."
   ;; FIXME: Should this perhaps compute position and size based on
   ;; the node's siblings instead?
-  (funcall thunk
+  (funcall compiled-xpath
            (if (typep context 'context) context (make-context context))))
 
 (defmacro evaluate (&environment env xpath context)
+  "@arg[xpath]{an XPath expression}
+   @arg[context]{an XPath context}
+   @return{the result of evaluating @code{xpath} within the @code{context}}
+   @short{Evaluates an XPath expression}
+
+   @code{xpath} can be a string, a sexpr-based XPath epression or
+   a compiled expression. The @code{context} can be obtained using @see{make-context}.
+   As an alternative, a node can be specifed."
   (let ((namespaces (or (macroexpand '(lexical-namespaces) env)
 			*initial-namespaces*))
 	(variables (macroexpand '(lexical-variables) env)))
-    `(evaluate-thunk (load-time-value
-		      (compile-xpath ,xpath
-				     (make-lexical-environment
-				      ',namespaces
-				      ',variables)))
-		     ,context)))
+    `(evaluate-compiled (load-time-value
+			 (compile-xpath ,xpath
+					(make-lexical-environment
+					 ',namespaces
+					 ',variables)))
+			,context)))
 
 ;; errors
 
