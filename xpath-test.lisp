@@ -332,7 +332,8 @@
 		"normalize-space('  abc  def  ')")
      ("47" "sum(//span[@id='s5']|//h4)")
      ("0" "sum(//span[.!=.])")
-     ("NaN" "sum(//span)"))
+     ("NaN" "sum(//span)")
+     ("" "concat(local-name(//text()[1]), name(//text()[1]), namespace-uri(//text()[1]))"))
     (verify-xpath*
      *sample-xml-3*
      ("W" (:id "w") "id('w')")
@@ -361,11 +362,7 @@
   (with-namespaces (("foo" "http://special"))
     (eql 2 (length (all-nodes (evaluate "//foo:*" *sample-xml-2*))))))
 
-(with-namespaces (("foo" "http://special"))
-  (define-xpath-test test-with-namespaces-4
-    (eql 2 (length (all-nodes (evaluate "//foo:*" *sample-xml-2*))))))
-
-(define-xpath-test test-with-namespaces-5
+(define-xpath-test test-with-namespaces-4
   (handler-case
       (funcall (compile nil
 			`(lambda ()

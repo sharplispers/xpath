@@ -168,7 +168,14 @@
   (funcall compiled-xpath
            (if (typep context 'context) context (make-context context))))
 
-(defmacro evaluate (&environment env xpath context)
+(defun same-expr-p (prev-expr xpath cur-bindings)
+  (and (equal xpath (first prev-expr))
+       (loop for (key . value) in (rest prev-expr)
+	     when (not (equal value (cdr (assoc key cur-bindings :test #'equal))))
+	       do (return nil)
+	     finally (return t))))
+
+(defmacro evaluate (xpath context)
   "@arg[xpath]{an XPath expression}
    @arg[context]{an XPath context}
    @return{the result of evaluating @code{xpath} within the @code{context}}
@@ -177,15 +184,22 @@
    @code{xpath} can be a string, a sexpr-based XPath epression or
    a compiled expression. The @code{context} can be obtained using @see{make-context}.
    As an alternative, a node can be specifed."
-  (let ((namespaces (or (macroexpand '(lexical-namespaces) env)
-			*initial-namespaces*))
-	(variables (macroexpand '(lexical-variables) env)))
-    `(evaluate-compiled (load-time-value
+  (with-gensyms (cache)
+    (once-only (xpath)
+      `(evaluate-compiled
+	(let ((,cache (load-time-value (cons nil nil))))
+	  (cond ((functionp ,xpath)
+		 ,xpath)
+		((same-expr-p (car ,cache) ,xpath *dynamic-namespaces*)
+		 (cdr ,cache))
+		(t
+		 (setf (car ,cache) nil) ;; try to avoid race conditions
+		 (prog1
+		   (setf (cdr ,cache)
 			 (compile-xpath ,xpath
-					(make-lexical-environment
-					 ',namespaces
-					 ',variables)))
-			,context)))
+					(make-dynamic-environment *dynamic-namespaces*)))
+		   (setf (car ,cache) (cons ,xpath *dynamic-namespaces*))))))
+	,context))))
 
 ;; errors
 

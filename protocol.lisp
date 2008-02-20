@@ -231,3 +231,13 @@
 (defmethod xpath-protocol:get-element-by-id ((node dom:node) id)
   (dom:get-element-by-id
    (if (dom:document-p node) node (dom:owner-document node)) id))
+
+;; Character data
+
+(defmethod xpath-protocol:local-name ((node dom:character-data)) "")
+
+(defmethod xpath-protocol:namespace-prefix ((node dom:character-data)) "")
+
+(defmethod xpath-protocol:namespace-uri ((node dom:character-data)) "")
+
+(defmethod xpath-protocol:qualified-name ((node dom:character-data)) "")

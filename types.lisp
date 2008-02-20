@@ -238,97 +238,86 @@
 (defgeneric environment-find-variable (environment local-name uri))
 
 
-;; lexical environment
+;; dynamic environment
 ;;
-;; The environment used automatically by our compiler-macros, and that
-;; knows about namespaces declared locally using WITH-NAMESPACES.
+;; The environment used automatically by EVALUATE macro, and that
+;; knows about namespaces declared using WITH-NAMESPACES.
 
-(defstruct (lexical-environment
+(defstruct (dynamic-environment
 	     (:include environment)
-	     (:constructor make-lexical-environment
-			   (namespaces variables)))
-  namespaces
-  variables)
+	     (:constructor make-dynamic-environment
+			   (namespaces)))
+  namespaces)
 
 (defmethod environment-find-namespace
-    ((environment lexical-environment) prefix)
-  (cdr (assoc prefix (lexical-environment-namespaces environment)
+    ((environment dynamic-environment) prefix)
+  (cdr (assoc prefix (dynamic-environment-namespaces environment)
 	      :test 'equal)))
-
-;;; (defmethod environment-find-function ((environment lexical-environment) lname uri)
-;;;   )
-
-(defmethod environment-find-variable
-    ((environment lexical-environment) lname uri)
-  (let ((cons (assoc (cons lname uri)
-		     (lexical-environment-variables environment)
-		     :test 'equal)))
-    (if cons
-	(let ((gensym (cdr cons)))
-	  (lambda (ctx)
-	    (declare (ignore ctx))
-	    (symbol-value gensym)))
-	nil)))
 
 (defparameter *initial-namespaces*
   '((nil . "")
     ("xmlns" . #"http://www.w3.org/2000/xmlns/")
     ("xml" . #"http://www.w3.org/XML/1998/namespace")))
 
-(defmacro lexical-namespaces () nil)
-(defmacro lexical-variables () nil)
+(defvar *dynamic-namespaces* *initial-namespaces*)
+(defvar *dynamic-var-bindings* nil)
 
-(defmacro with-namespaces ((&rest bindings) &body body &environment env)
-  (let ((conses
-	 (append (loop
-		    for (prefix uri) in bindings
-		    do
-		      (when (equal prefix "") (setf prefix nil))
-		      (check-type prefix (or string null))
-		      (check-type uri string)
-		    collect (cons prefix uri))
-		 (or (macroexpand '(lexical-namespaces) env)
-		     *initial-namespaces*))))
-    `(macrolet ((lexical-namespaces () ',conses))
-       ,@body)))
+;;; (defmethod environment-find-function ((environment dynamic-environment) lname uri)
+;;;   )
 
-(defun decode-lexical-qname (qname macro-env attributep)
+(defmethod environment-find-variable ((environment dynamic-environment) lname uri)
+  (lambda (ctx)
+    (declare (ignore ctx))
+    (let ((item (assoc (cons lname uri)
+		       *dynamic-var-bindings* :test 'equal)))
+      (if item
+	  (cdr item)
+	  (error "undeclared variable: ~s (uri ~s)" lname uri)))))
+
+(defun %namespace-binding-pair (prefix uri)
+  (when (equal prefix "")
+    (setf prefix nil))
+  (check-type prefix (or string null))
+  (check-type uri string)
+  (cons (copy-seq prefix)
+	(copy-seq uri)))
+
+(defmacro with-namespaces ((&rest bindings) &body body)
+  "Provide bindings for XPath namespaces. Bindings are specified in the form (PREFIX VALUE),
+where both PREFIX and VALUE are evaluated. Namespace bindings are used for XPath compilation"
+  `(let ((*dynamic-namespaces*
+	  (append (list
+		   ,@(loop for (prefix uri) in bindings
+			   collect `(%namespace-binding-pair ,prefix ,uri)))
+		  *dynamic-namespaces*)))
+     ,@body))
+
+(defun decode-dynamic-qname (qname)
   (multiple-value-bind (prefix local-name)
       (cxml::split-qname qname)
-    (values local-name (find-lexical-namespace prefix macro-env attributep))))
+    (values local-name (find-dynamic-namespace prefix))))
 
-(defun find-lexical-namespace (prefix macro-env attributep)
-  (if (or prefix (not attributep))
-      (let ((namespaces
-	     (or (macroexpand '(lexical-namespaces) macro-env)
-		 *initial-namespaces*)))
-	(or (cdr (assoc prefix namespaces :test #'equal))
-	    (xpath-error "undeclared namespace: ~A" prefix)))
+(defun find-dynamic-namespace (prefix)
+  (if prefix
+      (or (cdr (assoc prefix *dynamic-namespaces* :test #'equal))
+	  (xpath-error "undeclared namespace: ~A" prefix))
       ""))
 
-(defmacro with-variables ((&rest bindings) &body body &environment env)
-  (let* ((gensyms (loop
-                     for (qname nil) in bindings
-                     collect
-		       (gensym qname)))
-	 (alist
-          (append (loop
-		     for gensym in gensyms
-                     for (qname nil) in bindings
-                     collect
-                       (multiple-value-bind (local-name uri)
-                           (decode-lexical-qname qname env nil)
-                         (cons (cons local-name uri) gensym)))
-                  (macroexpand '(lexical-variables) env))))
-    `(let* (,@(loop
-		 for gensym in gensyms
-		 for (nil value) in bindings
-		 collect
-		   `(,gensym ,value)))
-       (declare (special ,@gensyms))
-       (macrolet ((lexical-variables () ',alist))
-         ,@body))))
+(defun %variable-binding-pair (qname value)
+  (multiple-value-bind (local-name uri)
+      (decode-dynamic-qname qname)
+    (cons (cons local-name uri) value)))
 
+(defmacro with-variables ((&rest bindings) &body body)
+  "Provide bindings for XPath variables. Bindings are specified in the form (QNAME VALUE),
+where both QNAME and VALUE are evaluated. Variable bindings are used for evaluation of compiled XPath
+expressions"
+  `(let ((*dynamic-var-bindings*
+	  (append (list
+		   ,@(loop for (qname value) in bindings
+			   collect
+			   `(%variable-binding-pair ,qname ,value))))))
+     ,@body))
 
 ;; test environment
 ;;
