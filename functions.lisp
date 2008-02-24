@@ -31,6 +31,8 @@
 
 ;; function library
 
+(define-extension xpath "" "Standard XPath functions")
+
 (defun xf-equal (u v) ;; FIXME: rm; use compare-values in tests
   #'(lambda (context)
       (compare-values 'equal
@@ -63,67 +65,67 @@
                (or (boolean-value (funcall first context))
                    (funcall rest context)))))))
 
-(define-xpath-function/eager = (a b) (compare-values 'equal a b))
+(define-xpath-function/eager xpath := (a b) (compare-values 'equal a b))
 
-(define-xpath-function/eager /= (a b) (not (compare-values 'equal a b)))
+(define-xpath-function/eager xpath :/= (a b) (not (compare-values 'equal a b)))
 
-(define-xpath-function/eager < (a b) (compare-values '< a b))
+(define-xpath-function/eager xpath :< (a b) (compare-values '< a b))
 
-(define-xpath-function/eager > (a b) (compare-values '> a b))
+(define-xpath-function/eager xpath :> (a b) (compare-values '> a b))
 
-(define-xpath-function/eager <= (a b) (compare-values '<= a b))
+(define-xpath-function/eager xpath :<= (a b) (compare-values '<= a b))
 
-(define-xpath-function/eager >= (a b) (compare-values '>= a b))
+(define-xpath-function/eager xpath :>= (a b) (compare-values '>= a b))
 
 ;; boolean functions
 
-(define-xpath-function/lazy :and (&rest exprs) (xf-and exprs))
+(define-xpath-function/lazy xpath :and (&rest exprs) (xf-and exprs))
 
-(define-xpath-function/lazy :or (&rest exprs) (xf-or exprs))
+(define-xpath-function/lazy xpath :or (&rest exprs) (xf-or exprs))
 
-(define-xpath-function/single-type :not boolean (a) (not a))
+(define-xpath-function/single-type xpath :not boolean (a) (not a))
 
-(define-xpath-function/eager :true () t)
+(define-xpath-function/eager xpath :true () t)
 
-(define-xpath-function/eager :false () nil)
+(define-xpath-function/eager xpath :false () nil)
 
-(define-xpath-function/single-type :boolean boolean (value) value)
+(define-xpath-function/single-type xpath :boolean boolean (value) value)
 
 ;; node-set functions
 
-(define-xpath-function/eager :position () (context-position context))
+(define-xpath-function/eager xpath :position () (context-position context))
 
-(define-xpath-function/eager :last () (context-size context))
+(define-xpath-function/eager xpath :last () (context-size context))
 
-(define-xpath-function/single-type :count node-set (node-set)
+(define-xpath-function/single-type xpath :count node-set (node-set)
   (pipe-length (pipe-of node-set)))
 
-(define-xpath-function/single-type :local-name node-set (&optional node-set)
+(define-xpath-function/single-type xpath :local-name node-set (&optional node-set)
   (cond ((null node-set) (xpath-protocol:local-name (context-node context))) ;; FIXME: root?
         ((pipe-empty-p (pipe-of node-set)) "")
         (t (xpath-protocol:local-name (textually-first-node node-set)))))
 
-(define-xpath-function/single-type :name node-set (&optional node-set)
+(define-xpath-function/single-type xpath :name node-set (&optional node-set)
   (cond ((null node-set)
 	 (xpath-protocol:qualified-name (context-node context)))
         ((pipe-empty-p (pipe-of node-set)) "")
         (t (xpath-protocol:qualified-name (textually-first-node node-set)))))
 
-(define-xpath-function/single-type :namespace-uri node-set (&optional node-set)
+(define-xpath-function/single-type xpath :namespace-uri node-set (&optional node-set)
   (cond ((null node-set)
 	 (xpath-protocol:namespace-uri (context-node context)))
         ((pipe-empty-p (pipe-of node-set)) "")
         (t (xpath-protocol:namespace-uri (textually-first-node node-set)))))
 
-;; helper function for the | operator, not in the keyword package:
-(define-xpath-function/single-type union node-set (node-set-1 node-set-2)
+;; helper function for the | operator:
+(define-xpath-function/eager xpath :union (&rest node-sets)
   ;; Need to sort on document order, see copy_copy47, copy_copy48
   ;; It's what users would want anyway.
   (make-node-set
-   (sort-pipe (append-pipes (pipe-of node-set-1) (pipe-of node-set-2)))
+   (sort-pipe (mappend-pipe #'pipe-of (mapcar #'node-set-value node-sets)))
    :document-order))
 
-(define-xpath-function/single-type :sum node-set (node-set)
+(define-xpath-function/single-type xpath :sum node-set (node-set)
   (let ((sum 0))
     (block nil
       (enumerate (pipe-of node-set)
@@ -134,7 +136,7 @@
 				(setf sum (xnum-+ sum num))))))
       sum)))
 
-(define-xpath-function/eager :id (object)
+(define-xpath-function/eager xpath :id (object)
   (labels ((get-by-ids (ids)
 	     (let ((ids (trim (string-value ids))))
 	       (if (zerop (length ids))
@@ -152,20 +154,20 @@
 
 ;; string functions
 
-(define-xpath-function/lazy :string (&optional string)
+(define-xpath-function/lazy xpath :string (&optional string)
   (if string
       (lambda (ctx)
 	(string-value (funcall string ctx)))
       (lambda (ctx)
 	(string-value (context-node ctx)))))
 
-(define-xpath-function/single-type :concat string (&rest strings)
+(define-xpath-function/single-type xpath :concat string (&rest strings)
   (reduce #'concat strings))
 
-(define-xpath-function/single-type :contains string (needle haystack)
+(define-xpath-function/single-type xpath :contains string (needle haystack)
   (and (search needle haystack) t))
 
-(define-xpath-function/eager :substring (string start &optional (len nil len-p))
+(define-xpath-function/eager xpath :substring (string start &optional (len nil len-p))
   (let* ((string (string-value string))
          (start (xnum-round (number-value start)))
          (end (if len-p
@@ -183,7 +185,7 @@
                         (1+ (length string))
                         (min end (1+ (length string)))))))))
 
-(define-xpath-function/eager :starts-with (string prefix)
+(define-xpath-function/eager xpath :starts-with (string prefix)
   (let* ((string (string-value string))
          (prefix (string-value prefix))
 	 (i (mismatch string prefix)))
@@ -194,7 +196,7 @@
 ;; FIXME: corner case: empty substring?
 ;; [looks correct to me.  XPath 2.0 agrees that the empty string is
 ;; returned if the second argument is the empty string. --dfl]
-(define-xpath-function/single-type :substring-before string (string substring)
+(define-xpath-function/single-type xpath :substring-before string (string substring)
   (let ((p (search substring string)))
     (if (null p)
         ""
@@ -203,20 +205,20 @@
 ;; FIXME: corner case: empty substring?
 ;; [looks correct to me.  XPath 2.0 agrees that the first argument is
 ;; returned if the second argument is the empty string. --dfl]
-(define-xpath-function/single-type :substring-after string (string substring)
+(define-xpath-function/single-type xpath :substring-after string (string substring)
   (let ((p (search substring string)))
     (if (null p)
         ""
         (subseq string (+ p (length substring))))))
 
-(define-xpath-function/lazy :string-length (&optional string)
+(define-xpath-function/lazy xpath :string-length (&optional string)
   (if string
       (lambda (ctx)
 	(length (string-value (funcall string ctx))))
       (lambda (ctx)
 	(length (string-value (context-node ctx))))))
 
-(define-xpath-function/lazy :normalize-space (&optional string)
+(define-xpath-function/lazy xpath :normalize-space (&optional string)
   (lambda (ctx)
     (let ((string
 	   (string-value (if string
@@ -224,7 +226,7 @@
 			     (context-node ctx)))))
       (cl-ppcre::regex-replace-all "\\s+" (trim string) " "))))
 
-(define-xpath-function/single-type :translate string (string from to)
+(define-xpath-function/single-type xpath :translate string (string from to)
   (map 'string
        (lambda (c)
 	 (let ((i (position c from)))
@@ -235,26 +237,26 @@
 
 ;; number functions
 
-(define-xpath-function/single-type :number string (value)
+(define-xpath-function/single-type xpath :number string (value)
   (number-value value))
 
-(define-xpath-function/single-type :floor number (value)
+(define-xpath-function/single-type xpath :floor number (value)
   (xnum-floor value))
 
-(define-xpath-function/single-type :round number (value)
+(define-xpath-function/single-type xpath :round number (value)
   (xnum-round value))
 
-(define-xpath-function/single-type :ceiling number (value)
+(define-xpath-function/single-type xpath :ceiling number (value)
   (xnum-ceiling value))
 
 (macrolet ((numop (op lisp-op)
-             `(define-xpath-function/single-type ,op number (a b) (,lisp-op a b))))
-  (numop + xnum-+)
-  (numop * xnum-*)
-  (numop / xnum-/)
-  (numop mod xnum-mod))
+             `(define-xpath-function/single-type xpath ,op number (a b) (,lisp-op a b))))
+  (numop :+ xnum-+)
+  (numop :* xnum-*)
+  (numop :/ xnum-/)
+  (numop :mod xnum-mod))
 
-(define-xpath-function/eager - (a &optional (b nil b-p))
+(define-xpath-function/eager xpath :- (a &optional (b nil b-p))
   (if b-p
       (xnum-- (number-value a) (number-value b))
       (xnum-- (number-value a))))

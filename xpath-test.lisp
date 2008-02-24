@@ -31,12 +31,6 @@
 
 ;; XPath-related tests
 
-(defun show-node-set (node-set)
-  (enumerate (pipe-of node-set)
-             :key #'(lambda (node)
-                      (sx node)
-                      (format t "~&-------~%"))))
-
 (defparameter *sample-xml*
   (concat
    "<?xml version=\"1.0\"?>"
@@ -500,3 +494,10 @@
                     "<span>test1</span><div>test2</div><p>test3</p>")
     (verify-results "test1|||test2|||test3|||test4"
                     "<span>test1</span><div>test2</div><p>test3</p><h1>test4</h1>")))
+
+;; TBD:
+;; (deftest test-xpath-extensions
+;;   (with-namespaces (("plx" "http://common-lisp.net/project/plexippus-xpath/plx"))
+;;     (verify-xpath*
+;;      *sample-xml*
+;;      )))

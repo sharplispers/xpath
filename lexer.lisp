@@ -302,6 +302,9 @@
   ((match :ncname :lparen)
    (ersetze! :function-name a))
 
+  ((match :qname :lparen)
+   (ersetze! :function-name a))
+
   ((and (match t :star-or-multiply)
 	(find aname '(:at :colons :lparen :lbracket
 		      :div :mod :and :or :multiply

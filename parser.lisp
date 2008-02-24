@@ -42,6 +42,7 @@
 (defun make-function-name (x)
   (cond
     ((symbolp x) x)
+    ((consp x) (list :qfunc (car x) (cdr x)))
     ((find #\: x) x)
     (t (intern (string-upcase x) :keyword))))
 
@@ -60,7 +61,7 @@
   #+debug (:print-states t)
   #+debug (:print-lookaheads t)
   #+debug (:print-goto-graph t)
-  (:muffle-conflicts (7 0))
+  (:muffle-conflicts (8 0))
 
   ;;;;;;;;;;;; 3.1 ;;;;;;;;;;;;
   ;;
@@ -173,8 +174,10 @@
   ;;;;;;;;;;;; 3.3 ;;;;;;;;;;;;
   ;;
   (union-expr path-expr
+	      (path-expr :pipe path-expr
+			 (lambda* (a nil d) `(:union ,a ,d)))
 	      (union-expr :pipe path-expr
-			  (lambda* (a nil d) `(union ,a ,d))))
+			  (lambda* (a nil d) `(,@a ,d))))
 
   (path-expr location-path
 	     (filter-expr

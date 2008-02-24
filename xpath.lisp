@@ -110,45 +110,6 @@
 
 ;; compilation
 
-(defmacro define-xpath-function/lazy (name args &body body)
-  (with-gensyms (thunks)
-    (let ((func-name (hypsym 'xfd name)))
-      `(progn
-         (defun ,func-name (,thunks)
-           (declare (ignorable ,thunks))
-           ,(if (null args)
-                `(locally ,@body)
-                `(destructuring-bind ,args ,thunks ,@body)))
-         (setf (get ',name 'xpath-function) ',func-name)))))
-
-(defmacro %define-xpath-function/eager (name converter args &body body)
-  (with-gensyms (thunks)
-    (let ((func-name (hypsym 'xfd name)))
-      `(progn
-         (defun ,func-name (,thunks)
-           (declare (ignorable ,thunks))
-           #'(lambda (context)
-               (declare (ignorable context))
-               ,(if (null args)
-                    `(locally ,@body)
-                    `(destructuring-bind ,args (mapcar ,converter ,thunks)
-                       ,@body))))
-         (setf (get ',name 'xpath-function) ',func-name)))))
-
-(defmacro define-xpath-function/eager (name args &body body)
-  (with-gensyms (thunk)
-    `(%define-xpath-function/eager ,name
-         #'(lambda (,thunk) (funcall ,thunk context))
-         ,args ,@body)))
-
-(defmacro define-xpath-function/single-type (name type args &body body)
-  (check-type type (member boolean number string node-set))
-  (with-gensyms (thunk)
-    (let ((value-func-name (hypsym type 'value)))
-      `(%define-xpath-function/eager ,name
-           #'(lambda (,thunk) (,value-func-name (funcall ,thunk context)))
-           ,args ,@body))))
-
 (defun decode-qname (qname environment attributep)
   (multiple-value-bind (prefix local-name)
       (cxml::split-qname qname)
@@ -175,8 +136,15 @@
 		(mapcar #'(lambda (e) (compile-xpath/sexpr e environment))
 			(rest expr))))
 	   (etypecase name
+	     ((cons (member :qfunc) (cons string (cons string null)))
+	      (destructuring-bind (prefix local-name) (rest name)
+		(let ((uri (find-namespace prefix environment nil)))
+		  (funcall (or
+			    (environment-find-function environment local-name uri)
+			    (xpath-error "no such function: ~s in namespace ~s" local-name uri))
+			   thunks))))
 	     (symbol
-	      (funcall (or (get name 'xpath-function)
+	      (funcall (or (environment-find-function environment (string-downcase name) "")
 			   (xpath-error "no such function: ~s" name))
 		       thunks))
 	     (string

@@ -86,6 +86,13 @@
 
 	   #:environment-find-namespace
 	   #:environment-find-variable
+	   #:environment-find-function
+
+	   #:find-xpath-function
+	   #:define-extension
+	   #:define-xpath-function/lazy
+	   #:define-xpath-function/eager
+	   #:define-xpath-function/single-type
 
 	   #:xpath-error)
   (:documentation

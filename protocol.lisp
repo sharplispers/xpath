@@ -58,6 +58,11 @@
 	(list parent)
 	empty-pipe)))
 
+(defun vector->pipe (vector &optional (start 0))
+  (if (>= start (length vector))
+      empty-pipe
+      (make-pipe (elt vector start)
+		 (vector->pipe vector (1+ start)))))
 
 ;; DOM mapping: simple slots
 
