@@ -518,3 +518,22 @@
      ("another-value"
       "//span[@class='another' and plx:current()/div/@class = 'something']"
       "//span[@class='another' and plx:current() = /]"))))
+
+(deftest test-xmls
+  (let ((xpath:*navigator* (cxml-xmls:make-xpath-navigator))
+	(d
+	 '("foo" (("a" "b"))
+	   " "
+	   ("a" (("id" "1")))
+	   " " ("b" (("id" "2")))
+	   " " ("c" (("id" "3")))
+	   " " ("a" (("id" "4")))
+	   " " ("b" (("id" "5")))
+	   " " ("c" (("id" "6")))
+	   " " ("a" (("id" "7")))
+	   " " ("b" (("id" "8")))
+	   " " ("c" (("id" "9")))
+	   " " ("last" NIL))))
+    (assert-equal
+     '(("a" (("id" "1"))) ("c" (("id" "6"))))
+     (xpath:all-nodes (xpath:evaluate "//c[position()=2]|//a[@id='1']" d)))))

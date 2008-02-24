@@ -27,4 +27,6 @@
 		 (:file "lexer")
 		 (:file "parser")
 		 (:file "api")
+		 (:file "plx")
+		 (:file "xmls-compat")
 		 (:file "xpath-test")))
