@@ -237,8 +237,12 @@
 
 ;; number functions
 
-(define-xpath-function/single-type xpath :number string (value)
-  (number-value value))
+(define-xpath-function/lazy xpath :number (&optional string)
+  (if string
+      (lambda (ctx)
+	(number-value (funcall string ctx)))
+      (lambda (ctx)
+	(number-value (context-node ctx)))))
 
 (define-xpath-function/single-type xpath :floor number (value)
   (xnum-floor value))

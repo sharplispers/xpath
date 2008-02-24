@@ -495,9 +495,26 @@
     (verify-results "test1|||test2|||test3|||test4"
                     "<span>test1</span><div>test2</div><p>test3</p><h1>test4</h1>")))
 
-;; TBD:
-;; (deftest test-xpath-extensions
-;;   (with-namespaces (("plx" "http://common-lisp.net/project/plexippus-xpath/plx"))
-;;     (verify-xpath*
-;;      *sample-xml*
-;;      )))
+(define-xpath-test test-plx-extensions
+  (with-plx-extensions
+    (verify-xpath*
+     *sample-xml*
+     ("another-value|||42"
+      (:path (:descendant "span" ((:qfunc "plx" "matches")
+				  (:path (:attribute "class"))
+				  "other$")))
+      "descendant::span[plx:matches(@class, 'other$')]"
+      "descendant::span[plx:matches(@class, 'OTHER$', 'i')]")
+     ("another-value" ;; make sure compiled regex caching doesn't break anything
+      "descendant::span[plx:matches('another', concat('^', @class, '$'))]")
+     (""
+      "descendant::span[plx:matches(@class, 'OTHER$')]")
+     ("def--abc"
+      "plx:replace('abc--def', '(a.*)--(d.*)', '\\2--\\1')"
+      "plx:replace('abc--def', '(A.*)--(D.*)', '\\2--\\1', 'i')")
+     ("true"
+      (= ((:qfunc "plx" "current")) (:path (:root :node)))
+      "plx:current() = /")
+     ("another-value"
+      "//span[@class='another' and plx:current()/div/@class = 'something']"
+      "//span[@class='another' and plx:current() = /]"))))

@@ -80,9 +80,18 @@
            #:node-set-empty-p
 	   #:node-set
 
+	   #:make-node-set
+	   #:make-pipe
+	   #:pipe-head
+	   #:pipe-tail
+	   #:pipe-of
+
 	   #:context
 	   #:make-context
 	   #:context-node
+	   #:context-starting-node
+	   #:context-position
+	   #:context-size
 
 	   #:environment-find-namespace
 	   #:environment-find-variable
@@ -99,4 +108,4 @@
    "Plexippus XPath is an XPath implementation for Common Lisp.
     TBD: document here:
     environments/variables, XPath sexpr-based syntax, representation of XPath
-    types (incl. xnums), samples"))
+    types (incl. xnums), extensions, samples"))

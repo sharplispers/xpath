@@ -39,13 +39,14 @@
   (let ((predicate-closure (compile-predicates predicates environment)))
     (multiple-value-bind (axis-function axis-ordering)
 	(axis-properties axis)
-      #'(lambda (node)
+      #'(lambda (node starting-node)
 	  (values
 	   (funcall predicate-closure
 		    (filter-pipe #'(lambda (node)
 				     (funcall node-test node
 					      (axis-principal-node-type axis)))
-				 (funcall axis-function node)))
+				 (funcall axis-function node))
+		    starting-node)
 	   axis-ordering)))))
 
 (defun compile-predicates (predicates environment)
@@ -53,10 +54,10 @@
 	     (if predicates
 		 (let ((predicate (car predicates))
 		       (next (do-compile (rest predicates))))
-		   #'(lambda (main-pipe)
+		   #'(lambda (main-pipe starting-node)
 		       (let ((context (make-context nil
 						    #'(lambda () (pipe-length main-pipe))
-						    0)))
+						    0 starting-node)))
 			 (funcall next
 				  (filter-pipe
 				   #'(lambda (cur-node)
@@ -66,8 +67,11 @@
 					 (if (xnum-p pred-result)
 					     (= (context-position context) pred-result)
 					     (boolean-value pred-result))))
-				   main-pipe)))))
-		 #'identity)))
+				   main-pipe)
+				  starting-node))))
+		 #'(lambda (node starting-node)
+		     (declare (ignore starting-node))
+		     node))))
     (do-compile (mapcar #'(lambda (p) (compile-xpath/sexpr p environment))
 			predicates))))
 
@@ -78,8 +82,8 @@
         (t
          (let ((first-of-path (first steps))
                (rest-of-path (make-location-path (rest steps))))
-           #'(lambda (node)
-               (let ((first-pipe (funcall first-of-path node)))
+           #'(lambda (node starting-node)
+               (let ((first-pipe (funcall first-of-path node starting-node)))
 		 ;; we know that mappend-pipe will call the function eagerly
 		 ;; once at the beginning, so we will get a value for
 		 ;; for result-ordering before returning.
@@ -87,7 +91,7 @@
 		   (values
 		    (mappend-pipe (lambda (n)
 				    (multiple-value-bind (pipe ordering)
-					(funcall rest-of-path n)
+					(funcall rest-of-path n starting-node)
 				      (setf result-ordering ordering)
 				      pipe))
 				  first-pipe)
@@ -106,7 +110,8 @@
 (defun xf-location-path (path)
   #'(lambda (context)
       (multiple-value-call #'make-node-set
-	(funcall path (context-node context)))))
+	(funcall path (context-node context)
+		 (context-starting-node context)))))
 
 ;; compilation
 
@@ -208,7 +213,7 @@
     (mapcar #'(lambda (step) (compile-location-step step environment)) path))))
 
 ;; like compile-path, but with an initial node set that is computed by
-;; a user expression `filter' rather than as the current node 
+;; a user expression `filter' rather than as the current node
 (defun compile-filter-path (filter predicate path environment)
   (let* ((filter-thunk (compile-xpath/sexpr filter environment))
 	 (predicate-thunk (compile-predicates (list predicate) environment))
@@ -225,9 +230,13 @@
 	      (xpath-error "not a node set: ~A" initial-node-set))
 	    (let* ((good-nodes
 		    (funcall predicate-thunk
-			     (sorted-pipe-of initial-node-set))))
+			     (sorted-pipe-of initial-node-set)
+			     (context-starting-node context))))
 	      (if path-thunk
-		  (mappend-pipe path-thunk good-nodes)
+		  (mappend-pipe
+		   #'(lambda (node)
+		       (funcall path-thunk node (context-starting-node context)))
+		   good-nodes)
 		  good-nodes))))
 	 (if steps
 	     :unordered

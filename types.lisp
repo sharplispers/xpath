@@ -280,15 +280,17 @@
 (defclass context ()
   ((node :initarg :node)
    (size :initarg :size)
-   (position :initarg :position))
+   (position :initarg :position)
+   (starting-node :initarg :starting-node))
   (:documentation "Represents XPath context"))
 
-(defun make-context (node &optional (size 1) (position 1))
+(defun make-context (node &optional (size 1) (position 1) (starting-node node))
   "@arg[node]{an XML node}
    @arg[size]{context size, a non-negative integer or a function without arguments returning non-negative integer}
    @arg[position]{context position, a positive integer}
    Makes a @class{context} object."
-  (make-instance 'context :node node :size size :position position))
+  (make-instance 'context :node node :size size :position position
+		 :starting-node starting-node))
 
 (defun context-node (context)
   "@arg[context]{an XPath context}
@@ -332,3 +334,16 @@
    @return{the value of @code{position}}
    Sets the position of the XPath @code{context} and returns it."
   (setf (slot-value context 'position) position))
+
+(defun context-starting-node (context)
+  "@arg[context]{an XPath context}
+   @return{an XML node}
+   Returns the node for which the whole XPath expression is evaluated."
+  (slot-value context 'starting-node))
+
+(defun (setf context-starting-node) (node context)
+  "@arg[context]{an XPath context}
+   @return{the value of @code{node}}
+   Sets the node which is considered \"starting\" one, i.e. for which the whole
+   XPath extension is evaluated."
+  (setf (slot-value context 'starting-node) node))

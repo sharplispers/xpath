@@ -151,9 +151,9 @@
   (if (functionp xpath)
       xpath
       (compile-xpath/sexpr (if (stringp xpath)
-                               (parse-xpath xpath)
-                               (second xpath))
-                           environment)))
+			       (parse-xpath xpath)
+			       (second xpath))
+			   environment)))
 
 (defun evaluate-compiled (compiled-xpath context)
   "@arg[compiled-xpath]{a compiled XPath expression}
