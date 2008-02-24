@@ -249,6 +249,9 @@
 ;;;; parser interface
 
 (defun parse-xpath (str)
+  "@arg[str]{a string}
+   @return{a s-expression-based XPath expression}
+   Parses a string-based XPath expression into s-expression-based one."
   (handler-bind
       ((error
 	(lambda (c)

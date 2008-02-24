@@ -1,3 +1,32 @@
+;;; -*- show-trailing-whitespace: t; indent-tabs: nil -*-
+
+;;; Copyright (c) 2007 Ivan Shvedunov. All rights reserved.
+;;; Copyright (c) 2007 David Lichteblau. All rights reserved.
+
+;;; Redistribution and use in source and binary forms, with or without
+;;; modification, are permitted provided that the following conditions
+;;; are met:
+;;;
+;;;   * Redistributions of source code must retain the above copyright
+;;;     notice, this list of conditions and the following disclaimer.
+;;;
+;;;   * Redistributions in binary form must reproduce the above
+;;;     copyright notice, this list of conditions and the following
+;;;     disclaimer in the documentation and/or other materials
+;;;     provided with the distribution.
+;;;
+;;; THIS SOFTWARE IS PROVIDED BY THE AUTHOR 'AS IS' AND ANY EXPRESSED
+;;; OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+;;; WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;;; ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+;;; DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+;;; DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+;;; GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+;;; WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 (in-package :xpath)
 
 ;; types
@@ -9,7 +38,8 @@
 
 (defclass node-set ()
   ((pipe :accessor pipe-of :initform empty-pipe :initarg :pipe)
-   (ordering :accessor ordering-of :initform :unordered :initarg :ordering)))
+   (ordering :accessor ordering-of :initform :unordered :initarg :ordering))
+  (:documentation "Represents an XPath node set"))
 
 (defmethod print-object ((object node-set) stream)
   (print-unreadable-object (object stream :type t :identity t)
@@ -18,11 +48,15 @@
 	(write-string "empty" stream))))
 
 (defun node-set-p (object)
-  "Return true if OBJECT is NODE-SET"
+  "@arg[object]{a value of any type}
+   @return{a generalized boolean}
+   Returns true if @code{object} is a @class{node-set}"
   (typep object 'node-set))
 
 (defun node-set-empty-p (node-set)
-  "Return true if NODE-SET is empty"
+  "@arg[node-set]{a node-set}
+   @return{a generalized boolean}
+   Returns true if @code{node-set} is empty"
   (pipe-empty-p (pipe-of node-set)))
 
 (defun make-node-set (pipe &optional (ordering :unordered))
@@ -176,6 +210,12 @@
         (t (compare/no-node-sets op a b))))
 
 (defun boolean-value (value)
+  "@arg[value]{value of an XPath-supported type or an XML node}
+   @return{an XPath boolean}
+   @short{Returns the value of XPath boolean() function.}
+
+   For XML nodes returns the value of XPath boolean() function applied
+   to the result of calling @see{string-value} for the specified @code{value}."
   (if (xpath-protocol:node-p value)
       (boolean-value (xpath-protocol:string-value value))
       (typecase value
@@ -186,6 +226,12 @@
         (t (if value t nil)))))
 
 (defun number-value (value)
+  "@arg[value]{value of an XPath-supported type or an XML node}
+   @return{an XPath number}
+   @short{Returns the value of XPath number() function.}
+
+   For XML nodes returns the value of XPath number() function applied
+   to the result of calling @see{string-value} for the specified @code{value}."
   (if (xpath-protocol:node-p value)
       (number-value (xpath-protocol:string-value value))
       (typecase value
@@ -195,6 +241,12 @@
         (t (if value 1 0)))))
 
 (defun string-value (value)
+  "@arg[value]{value of an XPath-supported type or an XML node}
+   @return{an XPath string}
+   @short{Returns the value of XPath number() function.}
+
+   For XML nodes returns the value of @see{xpath-protocol:string-value} applied
+   to the specified @code{value}."
   (if (xpath-protocol:node-p value)
       (string-value (xpath-protocol:string-value value))
       (typecase value
@@ -207,6 +259,12 @@
         (t (if value "true" "false")))))
 
 (defun node-set-value (value)
+  "@arg[value]{value of an XPath-supported type or an XML node}
+   @return{a node set}
+   @short{Returns the value of XPath node-set() function.}
+
+   For XML nodes returns a node set consisting of the single node specified
+   by @code{value}."
   (cond ((node-set-p value)
          value)
         ((xpath-protocol:node-p value)
@@ -216,16 +274,61 @@
 
 ;; context
 
-(defstruct (context
-	    (:constructor make-context (node &optional (size/delayed 1) (position 1))))
-  node size/delayed position)
+(defclass context ()
+  ((node :initarg :node)
+   (size :initarg :size)
+   (position :initarg :position))
+  (:documentation "Represents XPath context"))
+
+(defun make-context (node &optional (size 1) (position 1))
+  "@arg[node]{an XML node}
+   @arg[size]{context size, a non-negative integer or a function without arguments returning non-negative integer}
+   @arg[position]{context position, a positive integer}
+   Makes a @class{context} object."
+  (make-instance 'context :node node :size size :position position))
+
+(defun context-node (context)
+  "@arg[context]{an XPath context}
+   @return{an XML node}
+   Returns the context node of the XPath @code{context}."
+  (slot-value context 'node))
+
+(defun (setf context-node) (node context)
+  "@arg[node]{an XML node}
+   @arg[context]{an XPath context}
+   @return{the @code{node}}
+   Sets the context node of @code{context} and returns that node."
+  (setf (slot-value context 'node) node))
 
 (defun context-size (context)
-  (symbol-macrolet ((size/delayed (context-size/delayed context)))
-    (if (functionp size/delayed)
-        (setf size/delayed (funcall size/delayed))
-        size/delayed)))
+  "@arg[context]{an XPath context}
+   @return{a non-negative number}
+   @short{Returns the size of @code{context}}
+   If the context size was specified as a function,
+   the result of calling that function is returned."
+  (with-slots (size) context
+     (if (functionp size)
+        (setf size (funcall size)) size)))
 
+(defun (setf context-size) (size context)
+  "@arg[size]{context size, a non-negative integer or a function without arguments returning non-negative integer}
+   @arg[context]{an XPath context}
+   @return{the value of @code{size}}
+   Sets the size of the XPath @code{context} and returns it."
+  (setf (slot-value context 'size) size))
+
+(defun context-position (context)
+  "@arg[context]{an XPath context}
+   @return{a positive integer}
+   Returns the current position of the XPath @code{context}."
+  (slot-value context 'position))
+
+(defun (setf context-position) (position context)
+  "@arg[position]{context position, a positive integer}
+   @arg[context]{an XPath context}
+   @return{the value of @code{position}}
+   Sets the position of the XPath @code{context} and returns it."
+  (setf (slot-value context 'position) position))
 
 ;; environment
 ;;
@@ -233,9 +336,34 @@
 
 (defstruct environment)
 
-(defgeneric environment-find-namespace (environment prefix))
-(defgeneric environment-find-function (environment local-name uri))
-(defgeneric environment-find-variable (environment local-name uri))
+(defgeneric environment-find-namespace (environment prefix)
+  (:documentation "@arg[environment]{an XPath environment object}
+  @arg[prefix]{prefix part of a QName}
+  Returns namespace URI for specified @code{prefix}."))
+
+(defgeneric environment-find-function (environment local-name uri)
+  (:documentation "@arg[environment]{an XPath environment object}
+  @arg[local-name]{local part of expanded-name of the function}
+  @arg[uri]{namespace URI of the function}
+  @return{an XPath function or nil if it cannot be found}
+  @short{Finds an XPath function by @code{local-name} and @code{uri}.
+
+  XPath function is a Lisp function that takes zero or more \"thunks\"
+  as its arguments (corresponding to XPath expressions passed as function
+  arguments) and returns a new \"thunk\". A \"thunk\" is a function
+  that takes an instance of @class{context} as its argument and returns
+  the value of one of XPath types."))
+
+(defgeneric environment-find-variable (environment local-name uri)
+  (:documentation "@arg[environment]{an XPath environment object}
+  @arg[local-name]{local part of expanded-name of the function}
+  @arg[uri]{namespace URI of the function}
+  @return{XPath variable \"thunk\"}
+  @short{Finds an XPath variable by @code{local-name} and @code{uri}.
+  
+  XPath variable is represented by a \"thunk\". A \"thunk\" is a function
+  that takes an instance of @class{context} as its argument and returns
+  the value of one of XPath types."))
 
 
 ;; dynamic environment
@@ -283,8 +411,13 @@
 	(copy-seq uri)))
 
 (defmacro with-namespaces ((&rest bindings) &body body)
-  "Provide bindings for XPath namespaces. Bindings are specified in the form (PREFIX VALUE),
-where both PREFIX and VALUE are evaluated. Namespace bindings are used for XPath compilation"
+  "@arg[bindings]{bindings in the form (PREFIX VALUE). PREFIXes and VALUEs are evaluated}
+   @return{the tresult of evaluating @code{body}}
+   @short{Provides namespace bindings for XPath compilation}
+
+   Namespace bindings are used for compilation of XPath expressions.
+   nil is equivalent of \"\" prefix. Bindings provided by this macro
+   have dynamic scope."
   `(let ((*dynamic-namespaces*
 	  (append (list
 		   ,@(loop for (prefix uri) in bindings
@@ -309,9 +442,12 @@ where both PREFIX and VALUE are evaluated. Namespace bindings are used for XPath
     (cons (cons local-name uri) value)))
 
 (defmacro with-variables ((&rest bindings) &body body)
-  "Provide bindings for XPath variables. Bindings are specified in the form (QNAME VALUE),
-where both QNAME and VALUE are evaluated. Variable bindings are used for evaluation of compiled XPath
-expressions"
+  "@arg[bindings]{bindings in the form (QNAME VALUE). QNAMEs and VALUEs are evaluated}
+   @return{the tresult of evaluating @code{body}}
+   @short{Provides bindings for XPath variables}
+
+   Variable bindings are used for evaluation of compiled XPath expressions. Bindings
+   provided by this macro have dynamic scope."
   `(let ((*dynamic-var-bindings*
 	  (append (list
 		   ,@(loop for (qname value) in bindings

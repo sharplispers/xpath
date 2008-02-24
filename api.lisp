@@ -137,7 +137,7 @@
   '(or string function
     (cons (eql xpath) (cons t null))))
 
-(defun compile-xpath (xpath environment)
+(defun compile-xpath (xpath &optional (environment (make-dynamic-environment *dynamic-namespaces*)))
   "@arg[xpath]{an XPath expression}
    @return{a compiled XPath expression}
    @short{Compiles an XPath expression}
