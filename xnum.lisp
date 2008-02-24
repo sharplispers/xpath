@@ -129,9 +129,9 @@
   (handler-case
       (parse-number:parse-number
        (preprocess-number-str (trim str)))
-    ;; cannot use IGNORE-ERRORS here because PARSE-NUMBER::PARSE-ERROR is
+    ;; cannot use IGNORE-ERRORS here because PARSE-NUMBER::INVALID-NUMBER is
     ;; not an ERROR
-    ((or error parse-number::parse-error) ()
+    ((or error parse-number::invalid-number) ()
       :nan)))
 
 (defun xnum->string (xnum)
