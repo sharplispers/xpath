@@ -27,5 +27,4 @@
 		 (:file "lexer")
 		 (:file "parser")
 		 (:file "api")
-		 (:file "plx")
 		 (:file "xpath-test")))

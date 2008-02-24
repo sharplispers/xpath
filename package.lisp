@@ -34,7 +34,6 @@
   (:export #:child-pipe
 	   #:attribute-pipe
 	   #:namespace-pipe
-
            #:node-p
 	   #:parent-node
 	   #:local-name
@@ -43,18 +42,33 @@
 	   #:namespace-uri
 	   #:string-value
 	   #:processing-instruction-target
-
 	   #:node-type-p
-
 	   #:base-uri
+	   #:get-element-by-id
 
-	   #:get-element-by-id)
+	   #:define-default-method
+
+	   #:child-pipe-using-navigator
+	   #:attribute-pipe-using-navigator
+	   #:namespace-pipe-using-navigator
+           #:node-p-using-navigator
+	   #:parent-node-using-navigator
+	   #:local-name-using-navigator
+	   #:qualified-name-using-navigator
+	   #:namespace-prefix-using-navigator
+	   #:namespace-uri-using-navigator
+	   #:string-value-using-navigator
+	   #:processing-instruction-target-using-navigator
+	   #:node-type-p-using-navigator
+	   #:base-uri-using-navigator
+	   #:get-element-by-id-using-navigator)
   (:documentation
    "XPATH-PROTOCOL package contains generic functions that are used to support
     multiple representations of XML documents for XPath."))
 
 (defpackage :xpath
   (:use cl)
+  (:import-from :xpath-protocol #:define-default-method)
   (:export #:compile-xpath
 	   #:parse-xpath
 
@@ -102,6 +116,8 @@
 	   #:define-xpath-function/lazy
 	   #:define-xpath-function/eager
 	   #:define-xpath-function/single-type
+
+	   #:*navigator*
 
 	   #:xpath-error)
   (:documentation

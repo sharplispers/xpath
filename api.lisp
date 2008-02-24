@@ -166,7 +166,7 @@
   ;; FIXME: Should this perhaps compute position and size based on
   ;; the node's siblings instead?
   (funcall compiled-xpath
-           (if (typep context 'context) context (make-context context))))
+	   (if (typep context 'context) context (make-context context))))
 
 (defun same-expr-p (prev-expr xpath cur-bindings)
   (and (equal xpath (first prev-expr))

@@ -33,22 +33,43 @@
 
 ;; generic functions of the XPath protocol
 
-(defgeneric xpath-protocol:node-p (node)
-  (:method ((node t)) nil))
-(defgeneric xpath-protocol:child-pipe (node))
-(defgeneric xpath-protocol:attribute-pipe (node))
-(defgeneric xpath-protocol:namespace-pipe (node))
+(defparameter *navigator* :default-navigator)
 
-(defgeneric xpath-protocol:parent-node (node))
-(defgeneric xpath-protocol:string-value (node))
-(defgeneric xpath-protocol:qualified-name (node))
-(defgeneric xpath-protocol:local-name (node))
-(defgeneric xpath-protocol:namespace-prefix (node))
-(defgeneric xpath-protocol:namespace-uri (node))
-(defgeneric xpath-protocol:processing-instruction-target (node))
-(defgeneric xpath-protocol:node-type-p (node type))
-(defgeneric xpath-protocol:base-uri (node))
-(defgeneric xpath-protocol:get-element-by-id (node id))
+(macrolet ((defprotocol (name &rest extra-args)
+	     (let ((navi-name
+		    (find-symbol
+		     (format nil "~A~A" name :-using-navigator)
+		     (symbol-package name))))
+	       `(progn
+		  (defgeneric ,navi-name (navigator node ,@extra-args))
+		  (defun ,name (node ,@extra-args)
+		    (,navi-name *navigator* node ,@extra-args))))))
+  (defprotocol xpath-protocol:node-p)
+  (defprotocol xpath-protocol:child-pipe)
+  (defprotocol xpath-protocol:attribute-pipe)
+  (defprotocol xpath-protocol:namespace-pipe)
+  (defprotocol xpath-protocol:parent-node)
+  (defprotocol xpath-protocol:string-value)
+  (defprotocol xpath-protocol:qualified-name)
+  (defprotocol xpath-protocol:local-name)
+  (defprotocol xpath-protocol:namespace-prefix)
+  (defprotocol xpath-protocol:namespace-uri)
+  (defprotocol xpath-protocol:processing-instruction-target)
+  (defprotocol xpath-protocol:node-type-p type)
+  (defprotocol xpath-protocol:base-uri)
+  (defprotocol xpath-protocol:get-element-by-id id))
+
+(defmacro define-default-method (name (&rest args) &body body)
+  (let ((navi-name
+	 (find-symbol
+	  (format nil "~A~A" name :-using-navigator)
+	  (symbol-package name))))
+    `(defmethod ,navi-name ((navigator (eql :default-navigator)) ,@args)
+       ,@body)))
+
+(define-default-method xpath-protocol:node-p ((node t))
+  nil)
+
 
 ;; helper functions
 
@@ -66,59 +87,60 @@
 
 ;; DOM mapping: simple slots
 
-(defmethod xpath-protocol:node-p ((node dom:node)) t)
+(define-default-method xpath-protocol:node-p ((node dom:node)) t)
 
-(defmethod xpath-protocol:parent-node ((node dom:attr))
+(define-default-method xpath-protocol:parent-node ((node dom:attr))
   (dom:owner-element node))
 
-(defmethod xpath-protocol:parent-node ((node dom:node))
+(define-default-method xpath-protocol:parent-node ((node dom:node))
   (dom:parent-node node))
 
-(defmethod xpath-protocol:local-name ((node dom:node))
+(define-default-method xpath-protocol:local-name ((node dom:node))
   ;; fixme?
   (or (dom:local-name node) (dom:node-name node)))
 
-(defmethod xpath-protocol:namespace-prefix ((node dom:node))
+(define-default-method xpath-protocol:namespace-prefix ((node dom:node))
   (dom:prefix node))
 
-(defmethod xpath-protocol:namespace-uri ((node dom:node))
+(define-default-method xpath-protocol:namespace-uri ((node dom:node))
   (or (dom:namespace-uri node) ""))
 
-(defmethod xpath-protocol:qualified-name ((node dom:node))
+(define-default-method xpath-protocol:qualified-name ((node dom:node))
   (dom:node-name node))
 
-(defmethod xpath-protocol:processing-instruction-target ((node dom:node))
+(define-default-method xpath-protocol:processing-instruction-target
+    ((node dom:node))
   (dom:node-value node))
 
-(defmethod xpath-protocol:base-uri ((node dom:node))
+(define-default-method xpath-protocol:base-uri ((node dom:node))
   ;; fixme
   "")
 
 
 ;; DOM mapping: pipes
 
-(defmethod xpath-protocol:parent-node ((node dom:node))
+(define-default-method xpath-protocol:parent-node ((node dom:node))
   (dom:parent-node node))
 
-(defmethod xpath-protocol:child-pipe ((node dom:node))
+(define-default-method xpath-protocol:child-pipe ((node dom:node))
   empty-pipe)
 
-(defmethod xpath-protocol:child-pipe ((node dom:document))
+(define-default-method xpath-protocol:child-pipe ((node dom:document))
   (list (dom:document-element node)))
 
-(defmethod xpath-protocol:child-pipe ((node dom:element))
+(define-default-method xpath-protocol:child-pipe ((node dom:element))
   (vector->pipe (dom:child-nodes node)))
 
-(defmethod xpath-protocol:attribute-pipe ((node dom:node))
+(define-default-method xpath-protocol:attribute-pipe ((node dom:node))
   empty-pipe)
 
-(defmethod xpath-protocol:attribute-pipe ((node dom:element))
+(define-default-method xpath-protocol:attribute-pipe ((node dom:element))
   (filter-pipe #'(lambda (item)
 		   (not (equal (dom:namespace-uri item)
 			       "http://www.w3.org/2000/xmlns/")))
 	       (vector->pipe (dom:items (dom:attributes node)))))
 
-(defmethod xpath-protocol:namespace-pipe ((node dom:node))
+(define-default-method xpath-protocol:namespace-pipe ((node dom:node))
   (when (dom:parent-node node)
     (xpath-protocol:namespace-pipe (dom:parent-node node))))
 
@@ -128,25 +150,31 @@
   prefix
   uri)
 
-(defmethod xpath-protocol:node-p ((node dom-namespace))
+(define-default-method xpath-protocol:node-p ((node dom-namespace))
   t)
 
-(defmethod xpath-protocol:child-pipe ((node dom-namespace)) empty-pipe)
-(defmethod xpath-protocol:attribute-pipe ((node dom-namespace)) empty-pipe)
-(defmethod xpath-protocol:namespace-pipe ((node dom-namespace)) empty-pipe)
+(define-default-method xpath-protocol:child-pipe
+    ((node dom-namespace))
+  empty-pipe)
+(define-default-method xpath-protocol:attribute-pipe
+    ((node dom-namespace))
+  empty-pipe)
+(define-default-method xpath-protocol:namespace-pipe
+    ((node dom-namespace))
+  empty-pipe)
 
-(defmethod xpath-protocol:parent-node ((node dom-namespace))
+(define-default-method xpath-protocol:parent-node ((node dom-namespace))
   (dom-namespace-parent node))
-(defmethod xpath-protocol:local-name ((node dom-namespace))
+(define-default-method xpath-protocol:local-name ((node dom-namespace))
   (dom-namespace-prefix node))
-(defmethod xpath-protocol:qualified-name ((node dom-namespace))
+(define-default-method xpath-protocol:qualified-name ((node dom-namespace))
   (dom-namespace-prefix node))
-(defmethod xpath-protocol:namespace-prefix ((node dom-namespace))
+(define-default-method xpath-protocol:namespace-prefix ((node dom-namespace))
   nil)
-(defmethod xpath-protocol:namespace-uri ((node dom-namespace))
+(define-default-method xpath-protocol:namespace-uri ((node dom-namespace))
   (dom-namespace-uri node))
 
-(defmethod xpath-protocol:namespace-pipe ((node dom:element))
+(define-default-method xpath-protocol:namespace-pipe ((node dom:element))
   ;; FIXME: completely untested
   ;; FIXME: rewrite this lazily?
   (let ((table (make-hash-table :test 'equal))
@@ -186,7 +214,7 @@
 	     table)
     result))
 
-(defmethod xpath-protocol:string-value ((node dom:node))
+(define-default-method xpath-protocol:string-value ((node dom:node))
   ;; FIXME: support document and document-fragment
   (with-output-to-string (s)
     (labels ((write-text (node)
@@ -214,16 +242,16 @@
 ;;; 	     collect (elt children i)))
 ;;; 	empty-pipe)))
 
-(defmethod xpath-protocol:node-type-p ((node dom:node) type)
+(define-default-method xpath-protocol:node-type-p ((node dom:node) type)
   (declare (ignore type))
   nil)
 
-(defmethod xpath-protocol:node-type-p ((node dom-namespace) type)
+(define-default-method xpath-protocol:node-type-p ((node dom-namespace) type)
   (declare (ignore type))
   nil)
 
 (macrolet ((deftypemapping (class keyword)
-	     `(defmethod xpath-protocol:node-type-p
+	     `(define-default-method xpath-protocol:node-type-p
 		  ((node ,class) (type (eql ,keyword)))
 		t)))
   (deftypemapping dom:comment :comment)
@@ -233,16 +261,24 @@
   (deftypemapping dom:element :element)
   (deftypemapping dom-namespace :namespace))
 
-(defmethod xpath-protocol:get-element-by-id ((node dom:node) id)
+(define-default-method xpath-protocol:get-element-by-id ((node dom:node) id)
   (dom:get-element-by-id
    (if (dom:document-p node) node (dom:owner-document node)) id))
 
 ;; Character data
 
-(defmethod xpath-protocol:local-name ((node dom:character-data)) "")
+(define-default-method xpath-protocol:local-name
+    ((node dom:character-data))
+  "")
 
-(defmethod xpath-protocol:namespace-prefix ((node dom:character-data)) "")
+(define-default-method xpath-protocol:namespace-prefix
+    ((node dom:character-data))
+  "")
 
-(defmethod xpath-protocol:namespace-uri ((node dom:character-data)) "")
+(define-default-method xpath-protocol:namespace-uri
+    ((node dom:character-data))
+  "")
 
-(defmethod xpath-protocol:qualified-name ((node dom:character-data)) "")
+(define-default-method xpath-protocol:qualified-name
+    ((node dom:character-data))
+  "")
