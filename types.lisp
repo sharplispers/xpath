@@ -47,8 +47,8 @@
 (defmethod print-object ((object node-set) stream)
   (print-unreadable-object (object stream :type t :identity t)
     (if (pipe-of object)
-	(format stream "~A, ~_..." (pipe-head (pipe-of object)))
-	(write-string "empty" stream))))
+        (format stream "~A, ~_..." (pipe-head (pipe-of object)))
+        (write-string "empty" stream))))
 
 (defun node-set-p (object)
   "@arg[object]{a value of any type}
@@ -65,12 +65,12 @@
 (defun make-node-set (pipe &optional (ordering :unordered))
   (let ((visited (make-hash-table)))
     (make-instance 'node-set
-		   :pipe (filter-pipe
-			  #'(lambda (item)
-			      (unless (gethash item visited)
-				(setf (gethash item visited) t)))
-			  pipe)
-		   :ordering ordering)))
+                   :pipe (filter-pipe
+                          #'(lambda (item)
+                              (unless (gethash item visited)
+                                (setf (gethash item visited) t)))
+                          pipe)
+                   :ordering ordering)))
 
 (defun sorted-pipe-of (node-set)
   (sort-pipe (pipe-of node-set) (ordering-of node-set)))
@@ -91,25 +91,25 @@
        (car pipe))
       (:reverse-document-order
        (let (result)
-	 (enumerate pipe :key (lambda (elt) (setf result elt)))
-	 result))
+         (enumerate pipe :key (lambda (elt) (setf result elt)))
+         result))
       (:unordered
        (let ((result (car pipe)))
-	 (enumerate (pipe-tail pipe)
-		    :key (lambda (elt)
-			   (when (node< elt result)
-			     (setf result elt))))
-	 result)))))
+         (enumerate (pipe-tail pipe)
+                    :key (lambda (elt)
+                           (when (node< elt result)
+                             (setf result elt))))
+         result)))))
 
 ;; equality
 
 (defun node< (a b)
   "Compare nodes according to document order."
   (let* ((pp (force (funcall (axis-function :ancestor-or-self) a)))
-	 (qq (force (funcall (axis-function :ancestor-or-self) b)))
-	 (n (min (length pp) (length qq)))
-	 (pp (last pp n))
-	 (qq (last qq n)))
+         (qq (force (funcall (axis-function :ancestor-or-self) b)))
+         (n (min (length pp) (length qq)))
+         (pp (last pp n))
+         (qq (last qq n)))
     (cond
       ((eq b (car pp))
        ;; same node, or b is an ancestor of a
@@ -121,49 +121,49 @@
        ;; now pp and qq are different paths, leading to a common ancestor
        ;; somewhere:
        (loop
-	  for (p nextp) on pp
-	  for (q nextq) on qq
-	  if (eq nextp nextq)
-	  do (return
-	       (let ((pa? (xpath-protocol:node-type-p p :attribute))
-		     (qa? (xpath-protocol:node-type-p q :attribute))
-		     (pn? (xpath-protocol:node-type-p p :namespace))
-		     (qn? (xpath-protocol:node-type-p q :namespace)))
-		 (cond
-		   ;; special case for namespace and attribute of the same node
-		   ;; namespaces come first:
-		   ((and pn? qa?)
-		    t)
-		   ((and pa? qn?)
-		    nil)
-		   ;; I don't think that there's really an order defined
-		   ;; for attributes, but axes_axes58 makes it sound like
-		   ;; there is, so let's compare them according to the axis
-		   ((and pa? qa?)
-		    (enumerate (funcall (axis-function :attribute) nextp)
-			       :key (lambda (x)
-				      (when (eq x p)
-					(return t))
-				      (when (eq x q)
-					(return nil)))
-			       :result :error))
-		   ;; namespaces and attributes both come before children:
-		   ((or pa? pn?)
-		    t)
-		   ((or qa? qn?)
-		    nil)
-		   ;; in the normal case, walk the children:
-		   (t
-		    (enumerate
-		     (funcall (axis-function :following-sibling) p)
-		     :key (lambda (after-p)
-			    (when (eq after-p q)
-			      (return t)))
-		     :result nil)))))
-	  finally
-	  ;; oops: someone tried to compare nodes from different
-	  ;; documents.  Can happen with XSLT, can't do anything about it.
-	  (return 0))))))
+          for (p nextp) on pp
+          for (q nextq) on qq
+          if (eq nextp nextq)
+          do (return
+               (let ((pa? (xpath-protocol:node-type-p p :attribute))
+                     (qa? (xpath-protocol:node-type-p q :attribute))
+                     (pn? (xpath-protocol:node-type-p p :namespace))
+                     (qn? (xpath-protocol:node-type-p q :namespace)))
+                 (cond
+                   ;; special case for namespace and attribute of the same node
+                   ;; namespaces come first:
+                   ((and pn? qa?)
+                    t)
+                   ((and pa? qn?)
+                    nil)
+                   ;; I don't think that there's really an order defined
+                   ;; for attributes, but axes_axes58 makes it sound like
+                   ;; there is, so let's compare them according to the axis
+                   ((and pa? qa?)
+                    (enumerate (funcall (axis-function :attribute) nextp)
+                               :key (lambda (x)
+                                      (when (eq x p)
+                                        (return t))
+                                      (when (eq x q)
+                                        (return nil)))
+                               :result :error))
+                   ;; namespaces and attributes both come before children:
+                   ((or pa? pn?)
+                    t)
+                   ((or qa? qn?)
+                    nil)
+                   ;; in the normal case, walk the children:
+                   (t
+                    (enumerate
+                     (funcall (axis-function :following-sibling) p)
+                     :key (lambda (after-p)
+                            (when (eq after-p q)
+                              (return t)))
+                     :result nil)))))
+          finally
+          ;; oops: someone tried to compare nodes from different
+          ;; documents.  Can happen with XSLT, can't do anything about it.
+          (return 0))))))
 
 (defun sort-nodes (pipe)
   (sort (copy-list (force pipe)) #'node<))
@@ -290,7 +290,7 @@
    @arg[position]{context position, a positive integer}
    Makes a @class{context} object."
   (make-instance 'context :node node :size size :position position
-		 :starting-node starting-node))
+                 :starting-node starting-node))
 
 (defun context-node (context)
   "@arg[context]{an XPath context}

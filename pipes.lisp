@@ -52,11 +52,11 @@
   (if (or (pipe-empty-p pipe) (eql count 0))
       result
       (progn
-	(unless (null key) (funcall key (pipe-head pipe)))
-	(enumerate (pipe-tail pipe)
-		   :count (if count (1- count))
-		   :key key
-		   :result result))))
+        (unless (null key) (funcall key (pipe-head pipe)))
+        (enumerate (pipe-tail pipe)
+                   :count (if count (1- count))
+                   :key key
+                   :result result))))
 
 (defun force (pipe)
   (enumerate pipe))
@@ -68,7 +68,7 @@
   (if (pipe-empty-p pipe)
       empty-pipe
       (make-pipe (funcall function (pipe-head pipe))
-		 (map-pipe function (pipe-tail pipe)))))
+                 (map-pipe function (pipe-tail pipe)))))
 
 (defun pipe-elt (n pipe)
   (if (plusp n)
@@ -77,45 +77,45 @@
 
 (defun filter-pipe (function pipe)
   (cond ((pipe-empty-p pipe) empty-pipe)
-	((funcall function (pipe-head pipe))
-	 (make-pipe (pipe-head pipe) (filter-pipe function (pipe-tail pipe))))
-	(t (filter-pipe function (pipe-tail pipe)))))
+        ((funcall function (pipe-head pipe))
+         (make-pipe (pipe-head pipe) (filter-pipe function (pipe-tail pipe))))
+        (t (filter-pipe function (pipe-tail pipe)))))
 
 #+nil
 (defun append-pipes-rec (pipe-of-pipes) ;; FIXME
   (cond ((pipe-empty-p pipe-of-pipes) empty-pipe)
-	((pipe-empty-p (pipe-head pipe-of-pipes))
-	 (append-pipes-rec (pipe-tail pipe-of-pipes)))
-	(t (make-pipe (head (pipe-head pipe-of-pipes))
-		      (append-pipes-rec (make-pipe (pipe-tail (pipe-head pipe-of-pipes))
-						   (pipe-tail pipe-of-pipes)))))))
+        ((pipe-empty-p (pipe-head pipe-of-pipes))
+         (append-pipes-rec (pipe-tail pipe-of-pipes)))
+        (t (make-pipe (head (pipe-head pipe-of-pipes))
+                      (append-pipes-rec (make-pipe (pipe-tail (pipe-head pipe-of-pipes))
+                                                   (pipe-tail pipe-of-pipes)))))))
 
 (defun map-pipe-filtering (fn pipe &optional filter-test)
   "Map fn over pipe, delaying all but the first fn call,
- 	   collecting results"
+           collecting results"
   (if (pipe-empty-p pipe)
       empty-pipe
       (let* ((head (pipe-head pipe))
-	     (tail (pipe-tail pipe))
-	     (result (funcall fn head)))
-	(if (or (and filter-test (funcall filter-test result))
-		result)
-	    (make-pipe result (map-pipe-filtering fn tail filter-test))
-	    (map-pipe-filtering fn tail filter-test)))))
+             (tail (pipe-tail pipe))
+             (result (funcall fn head)))
+        (if (or (and filter-test (funcall filter-test result))
+                result)
+            (make-pipe result (map-pipe-filtering fn tail filter-test))
+            (map-pipe-filtering fn tail filter-test)))))
 
 (defun append-pipes (pipex pipey)
   "return a pipe that appends two pipes"
   (if (pipe-empty-p pipex)
       pipey
       (make-pipe (pipe-head pipex)
-		 (append-pipes (pipe-tail pipex) pipey))))
+                 (append-pipes (pipe-tail pipex) pipey))))
 
 (defun mappend-pipe (fn pipe)
   "lazily map fn over pipe, appending results"
   (if (pipe-empty-p pipe)
       empty-pipe
       (append-pipes (funcall fn (pipe-head pipe))
-		    (mappend-pipe fn (pipe-tail pipe)))))
+                    (mappend-pipe fn (pipe-tail pipe)))))
 
 (defun mappend-pipe-filtering (fn pipe &optional filter-test)
   "Map fn over pipe, delaying all but the first fn call,
@@ -123,24 +123,24 @@
   (if (pipe-empty-p pipe)
       empty-pipe
       (let* ((head (pipe-head pipe))
-	     (tail (pipe-tail pipe))
-	     (result (funcall fn head)))
-	(if (or (and filter-test (funcall filter-test result))
-		result)
-	    (make-pipe (pipe-head result)
-		       (append-pipes (pipe-tail result)
-				     (mappend-pipe-filtering fn tail filter-test)))
-	    (mappend-pipe-filtering fn tail filter-test)))))
+             (tail (pipe-tail pipe))
+             (result (funcall fn head)))
+        (if (or (and filter-test (funcall filter-test result))
+                result)
+            (make-pipe (pipe-head result)
+                       (append-pipes (pipe-tail result)
+                                     (mappend-pipe-filtering fn tail filter-test)))
+            (mappend-pipe-filtering fn tail filter-test)))))
 
 
 (defun subpipe-before (elt pipe &key (test #'eql))
   (if (pipe-empty-p pipe)
       pipe
       (let ((head (pipe-head pipe))
-	    (tail (pipe-tail pipe)))
-	(if (funcall test elt head)
-	    empty-pipe
-	    (make-pipe head (subpipe-before elt tail :test test))))))
+            (tail (pipe-tail pipe)))
+        (if (funcall test elt head)
+            empty-pipe
+            (make-pipe head (subpipe-before elt tail :test test))))))
 
 (defun subpipe-after (elt pipe &key (test #'eql))
   (loop

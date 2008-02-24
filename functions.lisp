@@ -107,13 +107,13 @@
 
 (define-xpath-function/single-type xpath :name node-set (&optional node-set)
   (cond ((null node-set)
-	 (xpath-protocol:qualified-name (context-node context)))
+         (xpath-protocol:qualified-name (context-node context)))
         ((pipe-empty-p (pipe-of node-set)) "")
         (t (xpath-protocol:qualified-name (textually-first-node node-set)))))
 
 (define-xpath-function/single-type xpath :namespace-uri node-set (&optional node-set)
   (cond ((null node-set)
-	 (xpath-protocol:namespace-uri (context-node context)))
+         (xpath-protocol:namespace-uri (context-node context)))
         ((pipe-empty-p (pipe-of node-set)) "")
         (t (xpath-protocol:namespace-uri (textually-first-node node-set)))))
 
@@ -129,37 +129,37 @@
   (let ((sum 0))
     (block nil
       (enumerate (pipe-of node-set)
-		 :key #'(lambda (node)
-			  (let ((num (number-value node)))
-			    (if (nan-p num)
-				(return :nan)
-				(setf sum (xnum-+ sum num))))))
+                 :key #'(lambda (node)
+                          (let ((num (number-value node)))
+                            (if (nan-p num)
+                                (return :nan)
+                                (setf sum (xnum-+ sum num))))))
       sum)))
 
 (define-xpath-function/eager xpath :id (object)
   (labels ((get-by-ids (ids)
-	     (let ((ids (trim (string-value ids))))
-	       (if (zerop (length ids))
-		   empty-pipe
-		   (filter-pipe (complement #'null)
-				(map-pipe #'(lambda (id)
-					      (xpath-protocol:get-element-by-id
-					       (context-node context) id))
-					  (cl-ppcre:split "\\s+" ids)))))))
+             (let ((ids (trim (string-value ids))))
+               (if (zerop (length ids))
+                   empty-pipe
+                   (filter-pipe (complement #'null)
+                                (map-pipe #'(lambda (id)
+                                              (xpath-protocol:get-element-by-id
+                                               (context-node context) id))
+                                          (cl-ppcre:split "\\s+" ids)))))))
     (make-node-set
      (sort-pipe
       (if (node-set-p object)
-	  (mappend-pipe #'get-by-ids (pipe-of object))
-	  (get-by-ids object))))))
+          (mappend-pipe #'get-by-ids (pipe-of object))
+          (get-by-ids object))))))
 
 ;; string functions
 
 (define-xpath-function/lazy xpath :string (&optional string)
   (if string
       (lambda (ctx)
-	(string-value (funcall string ctx)))
+        (string-value (funcall string ctx)))
       (lambda (ctx)
-	(string-value (context-node ctx)))))
+        (string-value (context-node ctx)))))
 
 (define-xpath-function/single-type xpath :concat string (&rest strings)
   (reduce #'concat strings))
@@ -188,10 +188,10 @@
 (define-xpath-function/eager xpath :starts-with (string prefix)
   (let* ((string (string-value string))
          (prefix (string-value prefix))
-	 (i (mismatch string prefix)))
+         (i (mismatch string prefix)))
     (and (or (null i)
-	     (eql i (length prefix)))
-	 t)))
+             (eql i (length prefix)))
+         t)))
 
 ;; FIXME: corner case: empty substring?
 ;; [looks correct to me.  XPath 2.0 agrees that the empty string is
@@ -214,25 +214,25 @@
 (define-xpath-function/lazy xpath :string-length (&optional string)
   (if string
       (lambda (ctx)
-	(length (string-value (funcall string ctx))))
+        (length (string-value (funcall string ctx))))
       (lambda (ctx)
-	(length (string-value (context-node ctx))))))
+        (length (string-value (context-node ctx))))))
 
 (define-xpath-function/lazy xpath :normalize-space (&optional string)
   (lambda (ctx)
     (let ((string
-	   (string-value (if string
-			     (funcall string ctx)
-			     (context-node ctx)))))
+           (string-value (if string
+                             (funcall string ctx)
+                             (context-node ctx)))))
       (cl-ppcre::regex-replace-all "\\s+" (trim string) " "))))
 
 (define-xpath-function/single-type xpath :translate string (string from to)
   (map 'string
        (lambda (c)
-	 (let ((i (position c from)))
-	   (if i
-	       (elt to i)
-	       c)))
+         (let ((i (position c from)))
+           (if i
+               (elt to i)
+               c)))
        string))
 
 ;; number functions
@@ -240,9 +240,9 @@
 (define-xpath-function/lazy xpath :number (&optional string)
   (if string
       (lambda (ctx)
-	(number-value (funcall string ctx)))
+        (number-value (funcall string ctx)))
       (lambda (ctx)
-	(number-value (context-node ctx)))))
+        (number-value (context-node ctx)))))
 
 (define-xpath-function/single-type xpath :floor number (value)
   (xnum-floor value))

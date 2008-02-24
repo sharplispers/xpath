@@ -36,14 +36,14 @@
 (defparameter *navigator* :default-navigator)
 
 (macrolet ((defprotocol (name &rest extra-args)
-	     (let ((navi-name
-		    (find-symbol
-		     (format nil "~A~A" name :-using-navigator)
-		     (symbol-package name))))
-	       `(progn
-		  (defgeneric ,navi-name (navigator node ,@extra-args))
-		  (defun ,name (node ,@extra-args)
-		    (,navi-name *navigator* node ,@extra-args))))))
+             (let ((navi-name
+                    (find-symbol
+                     (format nil "~A~A" name :-using-navigator)
+                     (symbol-package name))))
+               `(progn
+                  (defgeneric ,navi-name (navigator node ,@extra-args))
+                  (defun ,name (node ,@extra-args)
+                    (,navi-name *navigator* node ,@extra-args))))))
   (defprotocol xpath-protocol:node-p)
   (defprotocol xpath-protocol:child-pipe)
   (defprotocol xpath-protocol:attribute-pipe)
@@ -61,9 +61,9 @@
 
 (defmacro define-default-method (name (&rest args) &body body)
   (let ((navi-name
-	 (find-symbol
-	  (format nil "~A~A" name :-using-navigator)
-	  (symbol-package name))))
+         (find-symbol
+          (format nil "~A~A" name :-using-navigator)
+          (symbol-package name))))
     `(defmethod ,navi-name ((navigator (eql :default-navigator)) ,@args)
        ,@body)))
 
@@ -76,14 +76,14 @@
 (defun parent-pipe (node)
   (let ((parent (xpath-protocol:parent-node node)))
     (if parent
-	(list parent)
-	empty-pipe)))
+        (list parent)
+        empty-pipe)))
 
 (defun vector->pipe (vector &optional (start 0))
   (if (>= start (length vector))
       empty-pipe
       (make-pipe (elt vector start)
-		 (vector->pipe vector (1+ start)))))
+                 (vector->pipe vector (1+ start)))))
 
 ;; DOM mapping: simple slots
 
@@ -136,16 +136,16 @@
 
 (define-default-method xpath-protocol:attribute-pipe ((node dom:element))
   (filter-pipe #'(lambda (item)
-		   (not (equal (dom:namespace-uri item)
-			       "http://www.w3.org/2000/xmlns/")))
-	       (vector->pipe (dom:items (dom:attributes node)))))
+                   (not (equal (dom:namespace-uri item)
+                               "http://www.w3.org/2000/xmlns/")))
+               (vector->pipe (dom:items (dom:attributes node)))))
 
 (define-default-method xpath-protocol:namespace-pipe ((node dom:node))
   (when (dom:parent-node node)
     (xpath-protocol:namespace-pipe (dom:parent-node node))))
 
 (defstruct (dom-namespace
-	     (:constructor make-dom-namespace (parent prefix uri)))
+             (:constructor make-dom-namespace (parent prefix uri)))
   parent
   prefix
   uri)
@@ -178,48 +178,48 @@
   ;; FIXME: completely untested
   ;; FIXME: rewrite this lazily?
   (let ((table (make-hash-table :test 'equal))
-	(result '()))
+        (result '()))
     (labels ((record* (parent prefix uri)
-	       (unless (or (equal prefix "xmlns")
-			   (gethash prefix table))
-		 (setf (gethash prefix table)
-		       (make-dom-namespace parent prefix uri))))
-	     (record (parent node)
-	       (record* parent
-			(or (dom:prefix node) "")
-			(dom:namespace-uri node)))
-	     (recurse (node)
-	       (record node node)
-	       (dolist (attribute (dom:items (dom:attributes node)))
-		 (cond
-		   ((equal (dom:namespace-uri attribute)
-			   "http://www.w3.org/2000/xmlns/")
-		    ;; record explicitly declared namespaces, which might
-		    ;; not be in use anywhere
-		    (record* node
-			     (dom:local-name attribute)
-			     (dom:value attribute)))
-		   ((plusp (length (dom:prefix attribute)))
-		    ;; record namespaces from DOM 2 slots, which might not
-		    ;; be declared in an attribute
-		    (record node attribute))))
-	       (let ((parent (dom:parent-node node)))
-		 (when parent
-		   (recurse parent)))))
+               (unless (or (equal prefix "xmlns")
+                           (gethash prefix table))
+                 (setf (gethash prefix table)
+                       (make-dom-namespace parent prefix uri))))
+             (record (parent node)
+               (record* parent
+                        (or (dom:prefix node) "")
+                        (dom:namespace-uri node)))
+             (recurse (node)
+               (record node node)
+               (dolist (attribute (dom:items (dom:attributes node)))
+                 (cond
+                   ((equal (dom:namespace-uri attribute)
+                           "http://www.w3.org/2000/xmlns/")
+                    ;; record explicitly declared namespaces, which might
+                    ;; not be in use anywhere
+                    (record* node
+                             (dom:local-name attribute)
+                             (dom:value attribute)))
+                   ((plusp (length (dom:prefix attribute)))
+                    ;; record namespaces from DOM 2 slots, which might not
+                    ;; be declared in an attribute
+                    (record node attribute))))
+               (let ((parent (dom:parent-node node)))
+                 (when parent
+                   (recurse parent)))))
       (record* nil "xml" "http://www.w3.org/XML/1998/namespace")
       (recurse node))
     (maphash #'(lambda (prefix nsnode)
-		 (declare (ignore prefix))
-		 (push nsnode result))
-	     table)
+                 (declare (ignore prefix))
+                 (push nsnode result))
+             table)
     result))
 
 (define-default-method xpath-protocol:string-value ((node dom:node))
   ;; FIXME: support document and document-fragment
   (with-output-to-string (s)
     (labels ((write-text (node)
-	       (let ((value (dom:node-value node)))
-		 (when value (write-string value s))
+               (let ((value (dom:node-value node)))
+                 (when value (write-string value s))
                  (unless (dom:attribute-p node) ;; FIXME: verify CDATA sections
                    (dom:do-node-list (child (dom:child-nodes node))
                      (cond ((or (dom:element-p child)
@@ -235,12 +235,12 @@
 ;;; (defmethod preceding-sibling-pipe ()
 ;;;   (let ((parent (dom:parent-node node)))
 ;;;     (if parent
-;;; 	(let* ((children (dom:child-nodes parent))
-;;; 	       (pos (position node children)))
-;;; 	  (loop
-;;; 	     for i from (1- pos) downto 0
-;;; 	     collect (elt children i)))
-;;; 	empty-pipe)))
+;;;     (let* ((children (dom:child-nodes parent))
+;;;            (pos (position node children)))
+;;;       (loop
+;;;          for i from (1- pos) downto 0
+;;;          collect (elt children i)))
+;;;     empty-pipe)))
 
 (define-default-method xpath-protocol:node-type-p ((node dom:node) type)
   (declare (ignore type))
@@ -251,9 +251,9 @@
   nil)
 
 (macrolet ((deftypemapping (class keyword)
-	     `(define-default-method xpath-protocol:node-type-p
-		  ((node ,class) (type (eql ,keyword)))
-		t)))
+             `(define-default-method xpath-protocol:node-type-p
+                  ((node ,class) (type (eql ,keyword)))
+                t)))
   (deftypemapping dom:comment :comment)
   (deftypemapping dom:processing-instruction :processing-instruction)
   (deftypemapping dom:text :text)

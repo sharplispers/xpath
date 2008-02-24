@@ -35,15 +35,15 @@
   "Check whether two values are equal"
   (with-gensyms (exp-value act-value)
     `(let ((,exp-value ,expected)
-	   (,act-value ,actual))
+           (,act-value ,actual))
       (unless (equal ,exp-value ,act-value)
-	(error "TEST FAILED: ~s is expected to be~%~s~%but was~%~s"
-	       ',actual ,exp-value ,act-value)))))
+        (error "TEST FAILED: ~s is expected to be~%~s~%but was~%~s"
+               ',actual ,exp-value ,act-value)))))
 
 (defmacro assert-equal* (&rest pairs)
   (maybe-progn
    (loop for (expected actual) on pairs by #'cddr
-	 collect `(assert-equal ,expected ,actual))))
+         collect `(assert-equal ,expected ,actual))))
 
 (defmacro assert* (&rest expressions)
   (maybe-progn

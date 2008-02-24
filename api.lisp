@@ -151,9 +151,9 @@
   (if (functionp xpath)
       xpath
       (compile-xpath/sexpr (if (stringp xpath)
-			       (parse-xpath xpath)
-			       (second xpath))
-			   environment)))
+                               (parse-xpath xpath)
+                               (second xpath))
+                           environment)))
 
 (defun evaluate-compiled (compiled-xpath context)
   "@arg[compiled-xpath]{a compiled XPath expression}
@@ -166,14 +166,14 @@
   ;; FIXME: Should this perhaps compute position and size based on
   ;; the node's siblings instead?
   (funcall compiled-xpath
-	   (if (typep context 'context) context (make-context context))))
+           (if (typep context 'context) context (make-context context))))
 
 (defun same-expr-p (prev-expr xpath cur-bindings)
   (and (equal xpath (first prev-expr))
        (loop for (key . value) in (rest prev-expr)
-	     when (not (equal value (cdr (assoc key cur-bindings :test #'equal))))
-	       do (return nil)
-	     finally (return t))))
+             when (not (equal value (cdr (assoc key cur-bindings :test #'equal))))
+               do (return nil)
+             finally (return t))))
 
 (defmacro evaluate (xpath context)
   "@arg[xpath]{an XPath expression}
@@ -187,19 +187,19 @@
   (with-gensyms (cache)
     (once-only (xpath)
       `(evaluate-compiled
-	(let ((,cache (load-time-value (cons nil nil))))
-	  (cond ((functionp ,xpath)
-		 ,xpath)
-		((same-expr-p (car ,cache) ,xpath *dynamic-namespaces*)
-		 (cdr ,cache))
-		(t
-		 (setf (car ,cache) nil) ;; try to avoid race conditions
-		 (prog1
-		   (setf (cdr ,cache)
-			 (compile-xpath ,xpath
-					(make-dynamic-environment *dynamic-namespaces*)))
-		   (setf (car ,cache) (cons ,xpath *dynamic-namespaces*))))))
-	,context))))
+        (let ((,cache (load-time-value (cons nil nil))))
+          (cond ((functionp ,xpath)
+                 ,xpath)
+                ((same-expr-p (car ,cache) ,xpath *dynamic-namespaces*)
+                 (cdr ,cache))
+                (t
+                 (setf (car ,cache) nil) ;; try to avoid race conditions
+                 (prog1
+                   (setf (cdr ,cache)
+                         (compile-xpath ,xpath
+                                        (make-dynamic-environment *dynamic-namespaces*)))
+                   (setf (car ,cache) (cons ,xpath *dynamic-namespaces*))))))
+        ,context))))
 
 ;; errors
 

@@ -59,15 +59,15 @@
 (defun strip-prefix (car)
   (let ((pos (position #\: car)))
     (if pos
-	(subseq car (1+ pos))
-	car)))
+        (subseq car (1+ pos))
+        car)))
 
 (defmethod xpath-protocol:local-name-using-navigator
     ((navi xpath-navigator) (node cons))
   (let ((car (car node)))
     (if (consp car)
-	(car car)
-	(strip-prefix car))))
+        (car car)
+        (strip-prefix car))))
 
 (defmethod xpath-protocol:namespace-prefix-using-navigator
     ((navi xpath-navigator) (node cons))
@@ -77,10 +77,10 @@
 (defun register-prefix (navi uri)
   (with-slots (prefixes) navi
     (if (zerop (length uri))
-	""
-	(or (gethash uri prefixes)
-	    (setf (gethash uri prefixes)
-		  (format nil "ns-~D" (hash-table-count prefixes)))))))
+        ""
+        (or (gethash uri prefixes)
+            (setf (gethash uri prefixes)
+                  (format nil "ns-~D" (hash-table-count prefixes)))))))
 
 (defmethod xpath-protocol:namespace-uri-using-navigator
     ((navi xpath-navigator) (node cons))
@@ -89,12 +89,12 @@
 (defmethod xpath-protocol:qualified-name-using-navigator
     ((navi xpath-navigator) node)
   (let ((uri (xpath-protocol:namespace-uri-using-navigator navi node))
-	(lname (xpath-protocol:local-name-using-navigator navi node)))
+        (lname (xpath-protocol:local-name-using-navigator navi node)))
     (if (zerop (length uri))
-	lname
-	(format nil "~A:~A"
-		(xpath-protocol:namespace-prefix-using-navigator navi node)
-		lname))))
+        lname
+        (format nil "~A:~A"
+                (xpath-protocol:namespace-prefix-using-navigator navi node)
+                lname))))
 
 (defmethod xpath-protocol:base-uri-using-navigator
     ((navi xpath-navigator) (node cons))
@@ -120,82 +120,82 @@
     ((navi xpath-navigator) (node cons))
   (with-slots (children parents) navi
     (multiple-value-bind (c cp)
-	(gethash node children)
+        (gethash node children)
       (if cp
-	  c
-	  (setf (gethash node children)
-		(loop
-		   for child in (node-children node)
-		   ;; protect against structure sharing, in particular strings
-		   ;; used multiple times:
-		   for oops = (gethash child parents)
-		   for replacement = (if oops (copy-node child) child)
-		   collect replacement
-		   ;; register the parent
-		   do (setf (gethash replacement parents) node)))))))
+          c
+          (setf (gethash node children)
+                (loop
+                   for child in (node-children node)
+                   ;; protect against structure sharing, in particular strings
+                   ;; used multiple times:
+                   for oops = (gethash child parents)
+                   for replacement = (if oops (copy-node child) child)
+                   collect replacement
+                   ;; register the parent
+                   do (setf (gethash replacement parents) node)))))))
 
 (defmethod xpath-protocol:attribute-pipe-using-navigator
     ((navi xpath-navigator) (node cons))
   (with-slots (attributes parents) navi
     (multiple-value-bind (a ap)
-	(gethash node attributes)
+        (gethash node attributes)
       (if ap
-	  a
-	  (setf (gethash node attributes)
-		(loop
-		   for (name value) in (second node)
-		   for struct = (if (consp name)
-				    (make-xmls-attribute
-				     :local-name (car name)
-				     :uri (cdr name)
-				     :value value)
-				    (make-xmls-attribute
-				     :local-name (strip-prefix name)
-				     :uri ""
-				     :value value))
-		   collect struct
-		   ;; register the parent
-		   do (setf (gethash struct parents) struct)))))))
+          a
+          (setf (gethash node attributes)
+                (loop
+                   for (name value) in (second node)
+                   for struct = (if (consp name)
+                                    (make-xmls-attribute
+                                     :local-name (car name)
+                                     :uri (cdr name)
+                                     :value value)
+                                    (make-xmls-attribute
+                                     :local-name (strip-prefix name)
+                                     :uri ""
+                                     :value value))
+                   collect struct
+                   ;; register the parent
+                   do (setf (gethash struct parents) struct)))))))
 
 (defmethod xpath-protocol:namespace-pipe-using-navigator
     ((navi xpath-navigator) (node cons))
   (with-slots (namespaces) navi
     (multiple-value-bind (ns nsp)
-	(gethash node namespaces)
+        (gethash node namespaces)
       (if nsp
-	  ns
-	  (setf (gethash node namespaces)
-		(build-xpath-namespaces navi node))))))
+          ns
+          (setf (gethash node namespaces)
+                (build-xpath-namespaces navi node))))))
 
 (defun build-xpath-namespaces (navi node)
   (with-slots (parents) navi
     (let ((table (make-hash-table :test 'equal))
-	  (result '()))
+          (result '()))
       (labels ((record* (parent uri)
-		 (unless (gethash uri table)
-		   (let ((struct (make-xmls-namespace :uri uri)))
-		     (setf (gethash struct parents) parent)
-		     (setf (gethash uri table) struct))))
-	       (record (parent node)
-		 (let ((uri
-			(xpath-protocol:namespace-uri-using-navigator
-			 navi node)))
-		   (record* parent uri)))
-	       (recurse (node)
-		 (let ((parent (gethash node parents)))
-		   (when parent
-		     (recurse parent)))
-		 (record node node)
-		 (dolist (attribute
-			     (xpath-protocol:attribute-pipe-using-navigator
-			      navi node))
-		   (record node attribute))))
-	(record* nil "http://www.w3.org/XML/1998/namespace")
-	(recurse node))
+                 (unless (gethash uri table)
+                   (let ((struct (make-xmls-namespace :uri uri)))
+                     (setf (gethash struct parents) parent)
+                     (setf (gethash uri table) struct))))
+               (record (parent node)
+                 (let ((uri
+                        (xpath-protocol:namespace-uri-using-navigator
+                         navi node)))
+                   (record* parent uri)))
+               (recurse (node)
+                 (let ((parent (gethash node parents)))
+                   (when parent
+                     (recurse parent)))
+                 (record node node)
+                 (dolist (attribute
+                             (xpath-protocol:attribute-pipe-using-navigator
+                              navi node))
+                   (record node attribute))))
+        (record* nil "http://www.w3.org/XML/1998/namespace")
+        (recurse node))
       (maphash #'(lambda (prefix nsnode)
-		   (declare (ignore prefix))
-		   (push nsnode result))
-	       table)
+                   (declare (ignore prefix))
+                   (push nsnode result))
+               table)
       result)))
 
 (defmethod xpath-protocol:node-p-using-navigator
@@ -254,13 +254,13 @@
     ((navi xpath-navigator) node)
   (with-output-to-string (*standard-output*)
     (labels ((write-text (node)
-	       (etypecase node
-		 (xmls-attribute
-		  (write-string (xmls-attribute-value node)))
-		 (string
-		  (write-string node))
-		 (cons
-		  (mapc #'write-text (node-children node))))))
+               (etypecase node
+                 (xmls-attribute
+                  (write-string (xmls-attribute-value node)))
+                 (string
+                  (write-string node))
+                 (cons
+                  (mapc #'write-text (node-children node))))))
       (write-text node))))
 
 (defmethod xpath-protocol:node-type-p-using-navigator
@@ -280,9 +280,9 @@
   nil)
 
 (macrolet ((deftypemapping (class keyword)
-	     `(defmethod xpath-protocol:node-type-p-using-navigator
-		  ((navi xpath-navigator) (node ,class) (type (eql ,keyword)))
-		t)))
+             `(defmethod xpath-protocol:node-type-p-using-navigator
+                  ((navi xpath-navigator) (node ,class) (type (eql ,keyword)))
+                t)))
   (deftypemapping string :text)
   (deftypemapping cons :element)
   (deftypemapping xmls-attribute :attribute)

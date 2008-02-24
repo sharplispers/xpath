@@ -32,36 +32,36 @@
 (defpackage :xpath-protocol
   (:use)
   (:export #:child-pipe
-	   #:attribute-pipe
-	   #:namespace-pipe
+           #:attribute-pipe
+           #:namespace-pipe
            #:node-p
-	   #:parent-node
-	   #:local-name
-	   #:qualified-name
-	   #:namespace-prefix
-	   #:namespace-uri
-	   #:string-value
-	   #:processing-instruction-target
-	   #:node-type-p
-	   #:base-uri
-	   #:get-element-by-id
+           #:parent-node
+           #:local-name
+           #:qualified-name
+           #:namespace-prefix
+           #:namespace-uri
+           #:string-value
+           #:processing-instruction-target
+           #:node-type-p
+           #:base-uri
+           #:get-element-by-id
 
-	   #:define-default-method
+           #:define-default-method
 
-	   #:child-pipe-using-navigator
-	   #:attribute-pipe-using-navigator
-	   #:namespace-pipe-using-navigator
+           #:child-pipe-using-navigator
+           #:attribute-pipe-using-navigator
+           #:namespace-pipe-using-navigator
            #:node-p-using-navigator
-	   #:parent-node-using-navigator
-	   #:local-name-using-navigator
-	   #:qualified-name-using-navigator
-	   #:namespace-prefix-using-navigator
-	   #:namespace-uri-using-navigator
-	   #:string-value-using-navigator
-	   #:processing-instruction-target-using-navigator
-	   #:node-type-p-using-navigator
-	   #:base-uri-using-navigator
-	   #:get-element-by-id-using-navigator)
+           #:parent-node-using-navigator
+           #:local-name-using-navigator
+           #:qualified-name-using-navigator
+           #:namespace-prefix-using-navigator
+           #:namespace-uri-using-navigator
+           #:string-value-using-navigator
+           #:processing-instruction-target-using-navigator
+           #:node-type-p-using-navigator
+           #:base-uri-using-navigator
+           #:get-element-by-id-using-navigator)
   (:documentation
    "XPATH-PROTOCOL package contains generic functions that are used to support
     multiple representations of XML documents for XPath."))
@@ -70,21 +70,21 @@
   (:use cl)
   (:import-from :xpath-protocol #:define-default-method)
   (:export #:compile-xpath
-	   #:parse-xpath
+           #:parse-xpath
 
-	   #:boolean-value
-	   #:string-value
+           #:boolean-value
+           #:string-value
            #:number-value
 
-	   #:with-namespaces
-	   #:with-variables
-	   #:evaluate
-	   #:evaluate-compiled
-	   #:xpath
-	   #:first-node
-	   #:all-nodes
+           #:with-namespaces
+           #:with-variables
+           #:evaluate
+           #:evaluate-compiled
+           #:xpath
+           #:first-node
+           #:all-nodes
            #:map-node-set
-	   #:map-node-set->list
+           #:map-node-set->list
            #:do-node-set
            #:make-node-set-iterator
            #:node-set-iterator-end-p
@@ -92,34 +92,34 @@
            #:node-set-iterator-current
            #:node-set-p
            #:node-set-empty-p
-	   #:node-set
+           #:node-set
 
-	   #:make-node-set
-	   #:make-pipe
-	   #:pipe-head
-	   #:pipe-tail
-	   #:pipe-of
+           #:make-node-set
+           #:make-pipe
+           #:pipe-head
+           #:pipe-tail
+           #:pipe-of
 
-	   #:context
-	   #:make-context
-	   #:context-node
-	   #:context-starting-node
-	   #:context-position
-	   #:context-size
+           #:context
+           #:make-context
+           #:context-node
+           #:context-starting-node
+           #:context-position
+           #:context-size
 
-	   #:environment-find-namespace
-	   #:environment-find-variable
-	   #:environment-find-function
+           #:environment-find-namespace
+           #:environment-find-variable
+           #:environment-find-function
 
-	   #:find-xpath-function
-	   #:define-extension
-	   #:define-xpath-function/lazy
-	   #:define-xpath-function/eager
-	   #:define-xpath-function/single-type
+           #:find-xpath-function
+           #:define-extension
+           #:define-xpath-function/lazy
+           #:define-xpath-function/eager
+           #:define-xpath-function/single-type
 
-	   #:*navigator*
+           #:*navigator*
 
-	   #:xpath-error)
+           #:xpath-error)
   (:documentation
    "Plexippus XPath is an XPath implementation for Common Lisp.
     TBD: document here:

@@ -87,8 +87,8 @@
 (defmacro define-xpath-test (name &body body)
   `(deftest ,name
      (let ((*sample-xml* (cxml:parse-rod *sample-xml* *dom-builder*))
-	   (*sample-xml-2* (cxml:parse-rod *sample-xml-2* *dom-builder*))
-	   (*sample-xml-3* (cxml:parse-rod *sample-xml-3* *dom-builder*)))
+           (*sample-xml-2* (cxml:parse-rod *sample-xml-2* *dom-builder*))
+           (*sample-xml-3* (cxml:parse-rod *sample-xml-3* *dom-builder*)))
        ,@body)))
 
 (defun join-xpath-result (result)
@@ -100,8 +100,8 @@
   (make-node-set
    (xpath-protocol:child-pipe
     (funcall *document-element*
-	     (cxml:parse-rod (format nil "<div>~a</div>" xml)
-			     *dom-builder*)))))
+             (cxml:parse-rod (format nil "<div>~a</div>" xml)
+                             *dom-builder*)))))
 
 (define-xpath-test test-values
   (assert-equal*
@@ -181,19 +181,19 @@
   (once-only (xml)
     (maybe-progn
      (loop for (expected . xpaths) in items
-	   append
-	   (loop for xpath in xpaths
-		 collect
-		 `(progn
-		    (format *debug-io* "~&testing: ~s -> ~s" ',xpath ',expected)
-		    (assert-equal
-		     ,expected
-		     (join-xpath-result
-		      (evaluate
-		       ,(if (stringp xpath)
-			    xpath
-			    `'(xpath ,xpath))
-		       (make-context ,xml))))))))))
+           append
+           (loop for xpath in xpaths
+                 collect
+                 `(progn
+                    (format *debug-io* "~&testing: ~s -> ~s" ',xpath ',expected)
+                    (assert-equal
+                     ,expected
+                     (join-xpath-result
+                      (evaluate
+                       ,(if (stringp xpath)
+                            xpath
+                            `'(xpath ,xpath))
+                       (make-context ,xml))))))))))
 
 ;; TODO: test * and :text node tests; test returning multiple items; add other funcs; fix xf-equal
 (define-xpath-test test-xpath
@@ -351,8 +351,8 @@
      ("" "substring('12345', -1 div 0, 1 div 0)")
      ("" "normalize-space('')" "normalize-space('   ')")
      ("abc def" "normalize-space('abc def')"
-		"normalize-space('  abc  def')"
-		"normalize-space('  abc  def  ')")
+                "normalize-space('  abc  def')"
+                "normalize-space('  abc  def  ')")
      ("47" "sum(//span[@id='s5']|//h4)")
      ("0" "sum(//span[.!=.])")
      ("NaN" "sum(//span)")
@@ -368,14 +368,14 @@
      ("a" (:local-name (:id "w")) "local-name(id('w'))")
      ("W|||X|||Y" (:id (:path (:child "main") (:child "b"))) "id(main/b)"))))
 
-(define-xpath-test test-with-namespaces-0		;empty namespace need not be declared
+(define-xpath-test test-with-namespaces-0               ;empty namespace need not be declared
   (eq (first-node (evaluate "/div" *sample-xml*))
       (funcall *document-element* *sample-xml*)))
 
 (define-xpath-test test-with-namespaces-1
-  (with-namespaces (("" ""))		;can declare empty namespace
+  (with-namespaces (("" ""))            ;can declare empty namespace
     (eq (first-node (evaluate "/div" *sample-xml*))
-	(funcall *document-element* *sample-xml*))))
+        (funcall *document-element* *sample-xml*))))
 
 (define-xpath-test test-with-namespaces-2
   (with-namespaces (("foo" "http://special"))
@@ -388,9 +388,9 @@
 (define-xpath-test test-with-namespaces-4
   (handler-case
       (funcall (compile nil
-			`(lambda ()
-			   (with-namespaces (("foo" "http://special"))
-			     (evaluate "//bar:*" *sample-xml-2*)))))
+                        `(lambda ()
+                           (with-namespaces (("foo" "http://special"))
+                             (evaluate "//bar:*" *sample-xml-2*)))))
     (error ()
       t)
     (:no-error (x)
@@ -403,19 +403,19 @@
 
 (define-xpath-test test-with-variables-2
   (with-namespaces (("" "")
-		    ("ns" "http://foo"))
+                    ("ns" "http://foo"))
     (with-variables (("foo" 2)
-		     ("ns:foo" 3))
+                     ("ns:foo" 3))
       (eql (number-value (evaluate "$foo + $ns:foo" *sample-xml*)) 5))))
 
 (define-xpath-test test-with-variables-3
   (handler-case
       (funcall (compile nil
-			`(lambda ()
-			   (with-namespaces (("" ""))
-			     (with-variables (("foo" 2)
-					      ("ns:foo" 3))
-			       (evaluate "$foo" *sample-xml*))))))
+                        `(lambda ()
+                           (with-namespaces (("" ""))
+                             (with-variables (("foo" 2)
+                                              ("ns:foo" 3))
+                               (evaluate "$foo" *sample-xml*))))))
     (error ()
       t)
     (:no-error (x)
@@ -430,25 +430,25 @@
   (let ((n 0))
     (with-namespaces (("" ""))
       (with-variables (("foo" (incf n)))
-	(evaluate "$foo" *sample-xml*)))
+        (evaluate "$foo" *sample-xml*)))
     (assert-equal n 1)))
 
 (define-xpath-test test-following
   (xpath:with-namespaces (("" ""))
     (assert-equal* 0 (xpath:evaluate "count(html/following::text())"
-				     (cxml:parse-rod "<html></html>"
-						     *dom-builder*))
-		   11 (xpath:evaluate "count(//following::div) * 10 + count(//div|body/div)"
-				     (cxml:parse-rod
-				      "<html><body><span></span><br/><div></div></body></html>"
-				      *dom-builder*)))))
+                                     (cxml:parse-rod "<html></html>"
+                                                     *dom-builder*))
+                   11 (xpath:evaluate "count(//following::div) * 10 + count(//div|body/div)"
+                                     (cxml:parse-rod
+                                      "<html><body><span></span><br/><div></div></body></html>"
+                                      *dom-builder*)))))
 
 (define-xpath-test test-filtering
   (with-namespaces (("" ""))
     (with-variables (("somevar" (evaluate "/div" *sample-xml*)))
       (assert-equal "another-value"
-		    (evaluate "string($somevar/span[@class='another'])"
-			      *sample-xml*)))))
+                    (evaluate "string($somevar/span[@class='another'])"
+                              *sample-xml*)))))
 
 (define-xpath-test test-node-set-api
   (labels ((join (list)
@@ -501,8 +501,8 @@
      *sample-xml*
      ("another-value|||42"
       (:path (:descendant "span" ((:qfunc "plx" "matches")
-				  (:path (:attribute "class"))
-				  "other$")))
+                                  (:path (:attribute "class"))
+                                  "other$")))
       "descendant::span[plx:matches(@class, 'other$')]"
       "descendant::span[plx:matches(@class, 'OTHER$', 'i')]")
      ("another-value" ;; make sure compiled regex caching doesn't break anything
@@ -521,19 +521,19 @@
 
 (deftest test-xmls
   (let ((xpath:*navigator* (cxml-xmls:make-xpath-navigator))
-	(d
-	 '("foo" (("a" "b"))
-	   " "
-	   ("a" (("id" "1")))
-	   " " ("b" (("id" "2")))
-	   " " ("c" (("id" "3")))
-	   " " ("a" (("id" "4")))
-	   " " ("b" (("id" "5")))
-	   " " ("c" (("id" "6")))
-	   " " ("a" (("id" "7")))
-	   " " ("b" (("id" "8")))
-	   " " ("c" (("id" "9")))
-	   " " ("last" NIL))))
+        (d
+         '("foo" (("a" "b"))
+           " "
+           ("a" (("id" "1")))
+           " " ("b" (("id" "2")))
+           " " ("c" (("id" "3")))
+           " " ("a" (("id" "4")))
+           " " ("b" (("id" "5")))
+           " " ("c" (("id" "6")))
+           " " ("a" (("id" "7")))
+           " " ("b" (("id" "8")))
+           " " ("c" (("id" "9")))
+           " " ("last" NIL))))
     (assert-equal
      '(("a" (("id" "1"))) ("c" (("id" "6"))))
      (xpath:all-nodes (xpath:evaluate "//c[position()=2]|//a[@id='1']" d)))))

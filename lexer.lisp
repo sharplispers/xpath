@@ -82,89 +82,89 @@
     (loop
        for counter from 0
        for (subregex args . body) in rules do
-	 (unless (zerop counter)
-	   (write-char #\| regex-stream))
-	 (format regex-stream "(?<g~D>\\s*~A\\s*)" counter subregex))
+         (unless (zerop counter)
+           (write-char #\| regex-stream))
+         (format regex-stream "(?<g~D>\\s*~A\\s*)" counter subregex))
     (format regex-stream ")")
     `(let ((actions
-	    (vector
-	     ,@(loop
-		  for counter from 0
-		  for (subregex args . body) in rules
-		  collect
-		  `(cons ,(length args)
-			 (lambda (prev-token-name prev-token-value ,@args)
-			   (declare (ignorable prev-token-name
-					       prev-token-value))
-			   ,@(if (and (keywordp (car body))
-				      (null (cdr body)))
-				 `((values ,(car body) ,(car body)))
-				 body)))))))
+            (vector
+             ,@(loop
+                  for counter from 0
+                  for (subregex args . body) in rules
+                  collect
+                  `(cons ,(length args)
+                         (lambda (prev-token-name prev-token-value ,@args)
+                           (declare (ignorable prev-token-name
+                                               prev-token-value))
+                           ,@(if (and (keywordp (car body))
+                                      (null (cdr body)))
+                                 `((values ,(car body) ,(car body)))
+                                 body)))))))
        (multiple-value-bind (scanner group-numbers)
-	   (let ((cl-ppcre:*allow-named-registers* t)
-		 (group-table (make-array ,(length rules))))
-	     (multiple-value-bind (scanner groups)
-		 (cl-ppcre:create-scanner
-		  ,(get-output-stream-string regex-stream))
-	       (loop
-		  for i from 0
-		  for group in groups
-		  when group do
-		    (let ((group-number
-			   (parse-integer group
-					  :start 1
-					  :junk-allowed t)))
-		      (setf (elt group-table group-number) i)))
-	       (values scanner group-table)))
-	 (defun ,name (str)
-	   (let ((pos 0)
-		 (length (length str))
-		 (prev-token-name nil)
-		 (prev-token-value nil)
-		 (next-token-name nil)
-		 (next-token-value nil))
-	     (lambda ()
-	       (cond
-		 (next-token-name
-		  (multiple-value-prog1
-		      (values next-token-name next-token-value)
-		    (setf next-token-name nil)))
-		 ((< pos length)
-		  (multiple-value-bind
-			(total-start total-end group-start group-end)
-		      (cl-ppcre:scan scanner str :start pos)
-		    (unless total-start
-		      (xpath-error "not a well-formed XPath expression: ~
+           (let ((cl-ppcre:*allow-named-registers* t)
+                 (group-table (make-array ,(length rules))))
+             (multiple-value-bind (scanner groups)
+                 (cl-ppcre:create-scanner
+                  ,(get-output-stream-string regex-stream))
+               (loop
+                  for i from 0
+                  for group in groups
+                  when group do
+                    (let ((group-number
+                           (parse-integer group
+                                          :start 1
+                                          :junk-allowed t)))
+                      (setf (elt group-table group-number) i)))
+               (values scanner group-table)))
+         (defun ,name (str)
+           (let ((pos 0)
+                 (length (length str))
+                 (prev-token-name nil)
+                 (prev-token-value nil)
+                 (next-token-name nil)
+                 (next-token-value nil))
+             (lambda ()
+               (cond
+                 (next-token-name
+                  (multiple-value-prog1
+                      (values next-token-name next-token-value)
+                    (setf next-token-name nil)))
+                 ((< pos length)
+                  (multiple-value-bind
+                        (total-start total-end group-start group-end)
+                      (cl-ppcre:scan scanner str :start pos)
+                    (unless total-start
+                      (xpath-error "not a well-formed XPath expression: ~
                              lexer failed at position ~D" pos))
-		    (setf pos total-end)
-		    (loop
-		       for group-number across group-numbers
-		       for (nargs . action) across actions
-		       for start = (elt group-start group-number)
-		       when start do
-			 (multiple-value-bind
-			       (token-name token-value extra-name extra-value)
-			     (apply action
-				    prev-token-name
-				    prev-token-value
-				    (loop
-				       for i from (1+ group-number)
-				       repeat nargs
-				       collect
-				       (let ((astart (elt group-start i)))
-					 (and astart
-					      (subseq str
-						      astart
-						      (elt group-end i))))))
-			   (setf prev-token-name token-name
-				 prev-token-value token-value)
-			   (setf next-token-name extra-name
-				 next-token-value extra-value)
-			   (return (values token-name token-value)))
-		       finally
-			 (xpath-error "not a well-formed XPath expression: ~
+                    (setf pos total-end)
+                    (loop
+                       for group-number across group-numbers
+                       for (nargs . action) across actions
+                       for start = (elt group-start group-number)
+                       when start do
+                         (multiple-value-bind
+                               (token-name token-value extra-name extra-value)
+                             (apply action
+                                    prev-token-name
+                                    prev-token-value
+                                    (loop
+                                       for i from (1+ group-number)
+                                       repeat nargs
+                                       collect
+                                       (let ((astart (elt group-start i)))
+                                         (and astart
+                                              (subseq str
+                                                      astart
+                                                      (elt group-end i))))))
+                           (setf prev-token-name token-name
+                                 prev-token-value token-value)
+                           (setf next-token-name extra-name
+                                 next-token-value extra-value)
+                           (return (values token-name token-value)))
+                       finally
+                         (xpath-error "not a well-formed XPath expression: ~
                              no token rule matched at ~D" pos))))
-		 (t nil)))))))))
+                 (t nil)))))))))
 
 (defun namep (str)
   (and (not (zerop (length str)))
@@ -187,10 +187,10 @@
    (qname)
    (values :variable qname))
   (#.(apply #'format nil "([^~C-~C~C-~C~C-~C][\\w-.]*)"
-	    ;; some checking to make sure the first character looks at least
-	    ;; a bit like a NCNameStartChar, so that numbers and operators
-	    ;; won't get mistaken for an NCName.
-	    (mapcar #'code-char '(#x000 #x40 #x5B #x60 #x7B #xbf)))
+            ;; some checking to make sure the first character looks at least
+            ;; a bit like a NCNameStartChar, so that numbers and operators
+            ;; won't get mistaken for an NCName.
+            (mapcar #'code-char '(#x000 #x40 #x5B #x60 #x7B #xbf)))
    (name)
    (unless (nc-name-p name)
      (xpath-error "not an NCName: ~A" name))
@@ -202,11 +202,11 @@
    (if (and dot (zerop (length digits)))
        :dot
        (values :number (handler-case
-			   (parse-number:parse-number value)
-			 (org.mapcar.parse-number::invalid-number ()
-			   ;; re-signal this condition, because it's not
-			   ;; a subclass of error
-			   (xpath-error "not a well-formed XPath number"))))))
+                           (parse-number:parse-number value)
+                         (org.mapcar.parse-number::invalid-number ()
+                           ;; re-signal this condition, because it's not
+                           ;; a subclass of error
+                           (xpath-error "not a well-formed XPath number"))))))
   ("/(/)?" (2p) (if 2p :// :/))
   ("\\|" () :pipe)
   ("\\+" () :+)
@@ -218,7 +218,7 @@
   ("\\*" () (case prev-token-name
               ((:at :two-colons :lparen :lbracket :comma
                     :// :/ :pipe :+ :- := :!= :< :<= :> :>=)
-	       (values :star :star))
+               (values :star :star))
               (t (values :star-or-multiply :star-or-multiply)))))
 
 ;;; After the first lexing step, we need to correct various tokens, because
@@ -242,32 +242,32 @@
        (setf (values bname b) (funcall next-lexer))
        (setf (values cname c) (funcall next-lexer))
        (lambda ()
-	 (flet ((shift ()
-		  (multiple-value-bind (n v)
-		      (funcall next-lexer)
-		    (shiftf aname bname cname n)
-		    (shiftf a b c v)))
-		(ersetze! (name &optional (value name))
-		  (setf aname name)
-		  (setf a value)
-		  t)
-		(ersetze!b (name &optional (value name))
-		  (setf bname name)
-		  (setf b value)
-		  t)
-		(match (xa &optional (xb nil xbp) (xc nil xcp))
-		  (and (or (eq xa t) (eq xa aname))
-		       (or (not xbp)
-			   (and (or (eq xb t) (eq xb bname))
-				(or (not xcp)
-				    (or (eq xc t) (eq xc cname))))))))
-	   (shift)
-	   (cond
-	     ((null aname)
-	       nil)
-	     (t
-	      (loop while (cond ,@rules))
-	      (values aname a))))))))
+         (flet ((shift ()
+                  (multiple-value-bind (n v)
+                      (funcall next-lexer)
+                    (shiftf aname bname cname n)
+                    (shiftf a b c v)))
+                (ersetze! (name &optional (value name))
+                  (setf aname name)
+                  (setf a value)
+                  t)
+                (ersetze!b (name &optional (value name))
+                  (setf bname name)
+                  (setf b value)
+                  t)
+                (match (xa &optional (xb nil xbp) (xc nil xcp))
+                  (and (or (eq xa t) (eq xa aname))
+                       (or (not xbp)
+                           (and (or (eq xb t) (eq xb bname))
+                                (or (not xcp)
+                                    (or (eq xc t) (eq xc cname))))))))
+           (shift)
+           (cond
+             ((null aname)
+               nil)
+             (t
+              (loop while (cond ,@rules))
+              (values aname a))))))))
 
 (define-fixup-lexer make-fixup-lexer
   ((or (match :ncname :colon :star-or-multiply)
@@ -287,17 +287,17 @@
    (ersetze! :axis-name a))
 
   ((and (match :ncname)
-	(cl-ppcre:all-matches "^(and|or|mod|div)$" a))
+        (cl-ppcre:all-matches "^(and|or|mod|div)$" a))
    (let ((sym (intern (string-upcase a) :keyword)))
      (ersetze! sym sym)))
 
   ((and (match :ncname :lparen)
-	(cl-ppcre:all-matches "^comment|text|processing-instruction|node$"
-			      a))
+        (cl-ppcre:all-matches "^comment|text|processing-instruction|node$"
+                              a))
    (let ((sym (intern (string-upcase a) :keyword)))
      (if (eq sym :processing-instruction)
-	 (ersetze! :processing-instruction sym)
-	 (ersetze! :node-type-or-function-name a))))
+         (ersetze! :processing-instruction sym)
+         (ersetze! :node-type-or-function-name a))))
 
   ((match :ncname :lparen)
    (ersetze! :function-name a))
@@ -306,9 +306,9 @@
    (ersetze! :function-name a))
 
   ((and (match t :star-or-multiply)
-	(find aname '(:at :colons :lparen :lbracket
-		      :div :mod :and :or :multiply
-		      :/ :// :pipe :+ :- := :!= :< :<= :> :>=)))
+        (find aname '(:at :colons :lparen :lbracket
+                      :div :mod :and :or :multiply
+                      :/ :// :pipe :+ :- := :!= :< :<= :> :>=)))
    (ersetze!b :star))
 
   ((match t :star-or-multiply)

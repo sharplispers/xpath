@@ -35,17 +35,17 @@
   #'(lambda (node principal-node-type)
       #+nil
       (format t "node ~s principal-node-type ~s name ~s uri ~s~%"
-	      node principal-node-type
-	      local-name
-	      uri)
+              node principal-node-type
+              local-name
+              uri)
       (and (xpath-protocol:node-type-p node principal-node-type)
-	   (string= (xpath-protocol:namespace-uri node) uri)
-	   (string= (xpath-protocol:local-name node) local-name))))
+           (string= (xpath-protocol:namespace-uri node) uri)
+           (string= (xpath-protocol:local-name node) local-name))))
 
 (defun node-test-namespace (uri)
   #'(lambda (node principal-node-type)
       (and (xpath-protocol:node-type-p node principal-node-type)
-	   (string= (xpath-protocol:namespace-uri node) uri))))
+           (string= (xpath-protocol:namespace-uri node) uri))))
 
 (defun node-test-principal ()
   #'(lambda (node principal-node-type)
@@ -60,9 +60,9 @@
     #'(lambda (node principal-node-type)
         (declare (ignore principal-node-type))
         (and (xpath-protocol:node-type-p node :processing-instruction)
-	     (or (null name)
-		 (equal (xpath-protocol:processing-instruction-target node)
-			name)))))
+             (or (null name)
+                 (equal (xpath-protocol:processing-instruction-target node)
+                        name)))))
 
 (defun node-test-comment ()
   #'(lambda (node principal-node-type)

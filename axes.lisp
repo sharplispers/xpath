@@ -35,19 +35,19 @@
 #|
 FIXME: need to implement all axes
 
-[6]   	AxisName	   ::=   	'ancestor'	
-			| 'ancestor-or-self'	
-			| 'attribute'	
-			| 'child'	
-			| 'descendant'	
-			| 'descendant-or-self'	
-			| 'following'	
-			| 'following-sibling'	
-			| 'namespace'	
-			| 'parent'	
-			| 'preceding'	
-			| 'preceding-sibling'	
-			| 'self'	
+[6]     AxisName           ::=          'ancestor'      
+                        | 'ancestor-or-self'    
+                        | 'attribute'   
+                        | 'child'       
+                        | 'descendant'  
+                        | 'descendant-or-self'  
+                        | 'following'   
+                        | 'following-sibling'   
+                        | 'namespace'   
+                        | 'parent'      
+                        | 'preceding'   
+                        | 'preceding-sibling'   
+                        | 'self'        
 |#
 
 
@@ -56,7 +56,7 @@ FIXME: need to implement all axes
     `(progn
        (defun ,func-name (node) ,@body)
        (setf (get ',name 'axis-function) ',func-name
-	     (get ',name 'axis-ordering) ',ordering
+             (get ',name 'axis-ordering) ',ordering
              (get ',name 'axis-principal-node-type) ',principal-node-type))))
 
 (defun axis-function (axis) (get axis 'axis-function))
@@ -76,15 +76,15 @@ FIXME: need to implement all axes
 
 (define-axis :descendant-or-self (:document-order)
   (make-pipe node
-	     (mappend-pipe (axis-function :descendant-or-self)
-			   (xpath-protocol:child-pipe node))))
+             (mappend-pipe (axis-function :descendant-or-self)
+                           (xpath-protocol:child-pipe node))))
 
 ;; internal helper axis
 (define-axis reverse-descendant-or-self (:reverse-document-order)
   (append-pipes (mappend-pipe (axis-function 'reverse-descendant-or-self)
-			      (reverse
-			       (force (xpath-protocol:child-pipe node))))
-		(list node)))
+                              (reverse
+                               (force (xpath-protocol:child-pipe node))))
+                (list node)))
 
 (define-axis :descendant (:document-order)
   (mappend-pipe (axis-function :descendant-or-self)
@@ -93,29 +93,29 @@ FIXME: need to implement all axes
 (define-axis :following-sibling (:document-order)
   (unless (null (xpath-protocol:parent-node node))
     (subpipe-after node (xpath-protocol:child-pipe
-			 (xpath-protocol:parent-node node)))))
+                         (xpath-protocol:parent-node node)))))
 
 (define-axis :preceding-sibling (:reverse-document-order)
   (let ((parent (xpath-protocol:parent-node node)))
     (if parent
-	(nreverse (force (subpipe-before node (xpath-protocol:child-pipe
-					       parent))))
-	empty-pipe)))
+        (nreverse (force (subpipe-before node (xpath-protocol:child-pipe
+                                               parent))))
+        empty-pipe)))
 
 ;; FIXME: test
 ;; FIXME: order
 
 (define-axis :following (:document-order)
   (mappend-pipe (axis-function :descendant-or-self)
-		(mappend-pipe (axis-function :following-sibling)
-			      (funcall (axis-function :ancestor-or-self)
-				       node))))
+                (mappend-pipe (axis-function :following-sibling)
+                              (funcall (axis-function :ancestor-or-self)
+                                       node))))
 
 (define-axis :preceding (:reverse-document-order)
   (mappend-pipe (axis-function 'reverse-descendant-or-self)
-		(mappend-pipe (axis-function :preceding-sibling)
-			      (funcall (axis-function :ancestor-or-self)
-				       node))))
+                (mappend-pipe (axis-function :preceding-sibling)
+                              (funcall (axis-function :ancestor-or-self)
+                                       node))))
 
 (define-axis :ancestor (:reverse-document-order)
   (mappend-pipe (axis-function :ancestor-or-self)
@@ -123,8 +123,8 @@ FIXME: need to implement all axes
 
 (define-axis :ancestor-or-self (:reverse-document-order)
   (make-pipe node
-	     (mappend-pipe (axis-function :ancestor-or-self)
-			   (parent-pipe node))))
+             (mappend-pipe (axis-function :ancestor-or-self)
+                           (parent-pipe node))))
 
 (define-axis :attribute (:document-order :attribute)
   (xpath-protocol:attribute-pipe node))

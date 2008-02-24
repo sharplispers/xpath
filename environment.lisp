@@ -71,15 +71,15 @@
 ;; knows about namespaces declared using WITH-NAMESPACES.
 
 (defstruct (dynamic-environment
-	     (:include environment)
-	     (:constructor make-dynamic-environment
-			   (namespaces)))
+             (:include environment)
+             (:constructor make-dynamic-environment
+                           (namespaces)))
   namespaces)
 
 (defmethod environment-find-namespace
     ((environment dynamic-environment) prefix)
   (cdr (assoc prefix (dynamic-environment-namespaces environment)
-	      :test 'equal)))
+              :test 'equal)))
 
 (defparameter *initial-namespaces*
   '((nil . "")
@@ -96,10 +96,10 @@
   (lambda (ctx)
     (declare (ignore ctx))
     (let ((item (assoc (cons lname uri)
-		       *dynamic-var-bindings* :test 'equal)))
+                       *dynamic-var-bindings* :test 'equal)))
       (if item
-	  (cdr item)
-	  (error "undeclared variable: ~s (uri ~s)" lname uri)))))
+          (cdr item)
+          (error "undeclared variable: ~s (uri ~s)" lname uri)))))
 
 (defun %namespace-binding-pair (prefix uri)
   (when (equal prefix "")
@@ -107,7 +107,7 @@
   (check-type prefix (or string null))
   (check-type uri string)
   (cons (copy-seq prefix)
-	(copy-seq uri)))
+        (copy-seq uri)))
 
 (defmacro with-namespaces ((&rest bindings) &body body)
   "@arg[bindings]{bindings in the form (PREFIX VALUE). PREFIXes and VALUEs are evaluated}
@@ -118,10 +118,10 @@
    nil is equivalent of \"\" prefix. Bindings provided by this macro
    have dynamic scope."
   `(let ((*dynamic-namespaces*
-	  (append (list
-		   ,@(loop for (prefix uri) in bindings
-			   collect `(%namespace-binding-pair ,prefix ,uri)))
-		  *dynamic-namespaces*)))
+          (append (list
+                   ,@(loop for (prefix uri) in bindings
+                           collect `(%namespace-binding-pair ,prefix ,uri)))
+                  *dynamic-namespaces*)))
      ,@body))
 
 (defun decode-dynamic-qname (qname)
@@ -132,7 +132,7 @@
 (defun find-dynamic-namespace (prefix)
   (if prefix
       (or (cdr (assoc prefix *dynamic-namespaces* :test #'equal))
-	  (xpath-error "undeclared namespace: ~A" prefix))
+          (xpath-error "undeclared namespace: ~A" prefix))
       ""))
 
 (defun %variable-binding-pair (qname value)
@@ -148,10 +148,10 @@
    Variable bindings are used for evaluation of compiled XPath expressions. Bindings
    provided by this macro have dynamic scope."
   `(let ((*dynamic-var-bindings*
-	  (append (list
-		   ,@(loop for (qname value) in bindings
-			   collect
-			   `(%variable-binding-pair ,qname ,value))))))
+          (append (list
+                   ,@(loop for (qname value) in bindings
+                           collect
+                           `(%variable-binding-pair ,qname ,value))))))
      ,@body))
 
 ;; test environment

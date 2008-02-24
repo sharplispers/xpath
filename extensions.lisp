@@ -34,26 +34,26 @@
 (defvar *extensions* (make-hash-table :test #'equal))
 
 (defstruct (extension
-	    (:constructor make-extension
-			  (uri documentation &optional
-			       (functions (make-hash-table :test #'equal)))))
+            (:constructor make-extension
+                          (uri documentation &optional
+                               (functions (make-hash-table :test #'equal)))))
   uri documentation functions)
 
 (defun %define-extension (name uri documentation)
   (check-type uri string)
   (let* ((current-ext (get name 'xpath-extension))
-	 (new-ext
-	  (cond (current-ext
-		 (setf (gethash (extension-uri current-ext) *extensions*)
-		       (remove current-ext
-			       (gethash (extension-uri current-ext)
-					*extensions*))
-		       (extension-uri current-ext) uri
-		       (extension-documentation current-ext) documentation)
-		 current-ext)
-		(t
-		 (setf (get name 'xpath-extension)
-		       (make-extension uri documentation))))))
+         (new-ext
+          (cond (current-ext
+                 (setf (gethash (extension-uri current-ext) *extensions*)
+                       (remove current-ext
+                               (gethash (extension-uri current-ext)
+                                        *extensions*))
+                       (extension-uri current-ext) uri
+                       (extension-documentation current-ext) documentation)
+                 current-ext)
+                (t
+                 (setf (get name 'xpath-extension)
+                       (make-extension uri documentation))))))
     (push new-ext (gethash uri *extensions*))))
 
 (defmacro define-extension (name uri &optional documentation)
@@ -68,19 +68,19 @@
    All defined extensions for the namespace specified by @code{uri}
    are scanned for function with specified @code{local-name}."
   (loop for ext in (gethash uri *extensions*)
-	for match = (gethash local-name (extension-functions ext))
-	when match
-	  do (return match)))
+        for match = (gethash local-name (extension-functions ext))
+        when match
+          do (return match)))
 
 (defun add-xpath-function (ext name func)
   (let ((real-name (etypecase name
-		     (string name)
-		     (symbol (string-downcase name)))))
+                     (string name)
+                     (symbol (string-downcase name)))))
     (setf (gethash real-name
-		   (extension-functions
-		    (or (get ext 'xpath-extension)
-			(error "no such extension: ~s" ext))))
-	  func)))
+                   (extension-functions
+                    (or (get ext 'xpath-extension)
+                        (error "no such extension: ~s" ext))))
+          func)))
 
 (defmacro define-xpath-function/lazy (ext name args &body body)
   (with-gensyms (thunks)
@@ -91,7 +91,7 @@
            ,(if (null args)
                 `(locally ,@body)
                 `(destructuring-bind ,args ,thunks ,@body)))
-	 (add-xpath-function ',ext ',name ',func-name)))))
+         (add-xpath-function ',ext ',name ',func-name)))))
 
 (defmacro %define-xpath-function/eager (ext name converter args &body body)
   (with-gensyms (thunks)
@@ -105,7 +105,7 @@
                     `(locally ,@body)
                     `(destructuring-bind ,args (mapcar ,converter ,thunks)
                        ,@body))))
-	 (add-xpath-function ',ext ',name ',func-name)))))
+         (add-xpath-function ',ext ',name ',func-name)))))
 
 (defmacro define-xpath-function/eager (ext name args &body body)
   (with-gensyms (thunk)

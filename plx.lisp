@@ -42,30 +42,30 @@
   `(define-xpath-function/lazy plx ,name (,@args)
      (let ((prev-pattern (cons nil nil)))
        #'(lambda (ctx)
-	   (let* ((prev-pattern-copy prev-pattern)
-		  (string (string-value (funcall string-thunk ctx)))
-		  (pattern (format nil "~@[(?~a)~]~a"
-				   (when flags-thunk
-				     (string-value (funcall flags-thunk ctx)))
-				   (string-value (funcall pattern-thunk ctx))))
-		  (compiled-pattern
-		   (cdr (if (equal (car prev-pattern-copy) pattern)
-			    prev-pattern-copy
-			    (setf prev-pattern
-				  (cons pattern
-					(progn
-					  (handler-case
-					      (cl-ppcre:create-scanner pattern)
-					    (cl-ppcre:ppcre-syntax-error (e)
-					      (xpath-error "regular expression syntax error: ~a: ~a"
-							   pattern e))))))))))
-	     ,@body)))))
+           (let* ((prev-pattern-copy prev-pattern)
+                  (string (string-value (funcall string-thunk ctx)))
+                  (pattern (format nil "~@[(?~a)~]~a"
+                                   (when flags-thunk
+                                     (string-value (funcall flags-thunk ctx)))
+                                   (string-value (funcall pattern-thunk ctx))))
+                  (compiled-pattern
+                   (cdr (if (equal (car prev-pattern-copy) pattern)
+                            prev-pattern-copy
+                            (setf prev-pattern
+                                  (cons pattern
+                                        (progn
+                                          (handler-case
+                                              (cl-ppcre:create-scanner pattern)
+                                            (cl-ppcre:ppcre-syntax-error (e)
+                                              (xpath-error "regular expression syntax error: ~a: ~a"
+                                                           pattern e))))))))))
+             ,@body)))))
 
 (define-regex-function matches (string-thunk pattern-thunk &optional flags-thunk)
   (when (cl-ppcre:scan compiled-pattern string) t))
 
 (define-regex-function replace (string-thunk pattern-thunk replacement-thunk
-					     &optional flags-thunk)
+                                             &optional flags-thunk)
   (cl-ppcre::regex-replace-all
    compiled-pattern string (funcall replacement-thunk ctx)))
 
