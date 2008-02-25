@@ -164,7 +164,7 @@
 (define-xpath-function/single-type xpath :concat string (&rest strings)
   (reduce #'concat strings))
 
-(define-xpath-function/single-type xpath :contains string (needle haystack)
+(define-xpath-function/single-type xpath :contains string (haystack needle)
   (and (search needle haystack) t))
 
 (define-xpath-function/eager xpath :substring (string start &optional (len nil len-p))
@@ -227,13 +227,13 @@
       (cl-ppcre::regex-replace-all "\\s+" (trim string) " "))))
 
 (define-xpath-function/single-type xpath :translate string (string from to)
-  (map 'string
-       (lambda (c)
-         (let ((i (position c from)))
-           (if i
-               (elt to i)
-               c)))
-       string))
+  (with-output-to-string (out)
+    (loop for c across string
+          for i = (position c from)
+          do (cond ((null i)
+                    (write-char c out))
+                   ((< i (length to))
+                    (write-char (elt to i) out))))))
 
 ;; number functions
 

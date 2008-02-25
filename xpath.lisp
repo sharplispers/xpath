@@ -144,24 +144,16 @@
              ((cons (member :qfunc) (cons string (cons string null)))
               (destructuring-bind (prefix local-name) (rest name)
                 (let ((uri (find-namespace prefix environment nil)))
-                  (funcall (or
-                            (environment-find-function environment local-name uri)
-                            (xpath-error "no such function: ~s in namespace ~s" local-name uri))
-                           thunks))))
+                  (compile-xpath-function-call
+                   (or
+                    (environment-find-function environment local-name uri)
+                    (xpath-error "no such function: ~s in namespace ~s" local-name uri))
+                   thunks))))
              (symbol
-              (funcall (or (environment-find-function environment (string-downcase name) "")
-                           (xpath-error "no such function: ~s" name))
-                       thunks))
-             (string
-              (multiple-value-bind (local-name uri)
-                  (decode-qname name environment nil)
-                (let ((fun (environment-find-function environment
-                                                      local-name
-                                                      uri)))
-                  #'(lambda (context)
-                      (apply fun (mapcar (lambda (thunk)
-                                           (funcall thunk context))
-                                         thunks)))))))))))
+              (compile-xpath-function-call
+               (or (environment-find-function environment (string-downcase name) "")
+                   (xpath-error "no such function: ~s" name))
+               thunks)))))))
 
 (defun compile-variable (name environment)
   (multiple-value-bind (local-name uri)

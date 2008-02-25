@@ -320,8 +320,8 @@
       (:string (:path (:descendant "a")))
       "string(descendant::a)")
      ("true"
-      (:contains "needle" "needle-in-haystack")
-      "contains('needle', 'needle-in-haystack')")
+      (:contains "needle-in-haystack" "needle")
+      "contains('needle-in-haystack', 'needle')")
      ("1999"
       (:substring-before "1999/04/01" "/")
       "substring-before('1999/04/01', '/')")
@@ -517,7 +517,13 @@
       "plx:current() = /")
      ("another-value"
       "//span[@class='another' and plx:current()/div/@class = 'something']"
-      "//span[@class='another' and plx:current() = /]"))))
+      "//span[@class='another' and plx:current() = /]")
+     ("true"
+      "plx:generate-id(//span[1]) = plx:generate-id(//span[@class='sample'])"
+      "plx:generate-id(//span) = plx:generate-id(//span[@class='sample'])"
+      "plx:generate-id(//span[2]) != plx:generate-id(//span[@class='sample'])"
+      "plx:generate-id(//span[2]) != plx:generate-id(/)"
+      "plx:generate-id() = plx:generate-id(/)"))))
 
 (deftest test-xmls
   (let ((xpath:*navigator* (cxml-xmls:make-xpath-navigator))

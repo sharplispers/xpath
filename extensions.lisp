@@ -39,6 +39,31 @@
                                (functions (make-hash-table :test #'equal)))))
   uri documentation functions)
 
+(defstruct (xpath-function
+            (:constructor make-xpath-function (compiler name min-args max-args)))
+  compiler name min-args max-args)
+
+(defun compile-xpath-function-call (xpath-function argument-thunks)
+  (unless (<= (xpath-function-min-args xpath-function)
+              (length argument-thunks)
+              (xpath-function-max-args xpath-function))
+   (xpath-error "invalid number of arguments -- ~a for function ~a"
+                (length argument-thunks)
+                (xpath-function-name xpath-function)))
+  (let ((func (funcall (xpath-function-compiler xpath-function) argument-thunks))
+        (name (xpath-function-name xpath-function)))
+    #'(lambda (context)
+        (handler-bind ((xpath-error
+                        #'(lambda (condition)
+                            (declare (ignore condition)) nil))
+                       (error
+                        #'(lambda (condition)
+                            ;; we're not using xpath-error here because all lisp errors
+                            ;; should be explicitly handled
+                            (error "~a(): error: ~a"
+                                   name condition))))
+          (funcall func context)))))
+
 (defun %define-extension (name uri documentation)
   (check-type uri string)
   (let* ((current-ext (get name 'xpath-extension))
@@ -63,6 +88,7 @@
 (defun find-xpath-function (local-name uri)
   "@arg[local-name]{local part of the function name}
    @arg[uri]{namespace URI of the function}
+   @return[uri]{an XPath function object}
    @short{Performs an XPath function lookup using standard lookup rules}
 
    All defined extensions for the namespace specified by @code{uri}
@@ -72,15 +98,42 @@
         when match
           do (return match)))
 
-(defun add-xpath-function (ext name func)
+(defun arg-count (arglist)
+  (let ((bad-kw (find-if #'(lambda (arg)
+                             (and
+                              (not (eq arg '&rest))
+                              (not (eq arg '&optional))
+                              (and (symbolp arg)
+                                   (char= (char (symbol-name arg) 0) #\&))))
+                         arglist)))
+    (when bad-kw
+      (error "lambda list keyword ~a isn't supported by XPath functions"
+             bad-kw)))
+  (let ((rest-pos (position '&rest (remove '&optional arglist)))
+        (opt-pos (position '&optional arglist)))
+    (cond (rest-pos
+           (values (arg-count (subseq arglist 0 rest-pos))
+                   most-positive-fixnum))
+          (opt-pos
+           (values
+            (position '&optional arglist)
+            (1- (length arglist))))
+          (t
+           (values
+            (length arglist)
+            (length arglist))))))
+
+(defun add-xpath-function (ext name func arglist)
   (let ((real-name (etypecase name
                      (string name)
                      (symbol (string-downcase name)))))
-    (setf (gethash real-name
-                   (extension-functions
-                    (or (get ext 'xpath-extension)
-                        (error "no such extension: ~s" ext))))
-          func)))
+    (multiple-value-bind (min-args max-args)
+        (arg-count arglist)
+      (setf (gethash real-name
+                     (extension-functions
+                      (or (get ext 'xpath-extension)
+                          (error "no such extension: ~s" ext))))
+            (make-xpath-function func real-name min-args max-args)))))
 
 (defmacro define-xpath-function/lazy (ext name args &body body)
   (with-gensyms (thunks)
@@ -91,7 +144,7 @@
            ,(if (null args)
                 `(locally ,@body)
                 `(destructuring-bind ,args ,thunks ,@body)))
-         (add-xpath-function ',ext ',name ',func-name)))))
+         (add-xpath-function ',ext ',name ',func-name ',args)))))
 
 (defmacro %define-xpath-function/eager (ext name converter args &body body)
   (with-gensyms (thunks)
@@ -105,7 +158,7 @@
                     `(locally ,@body)
                     `(destructuring-bind ,args (mapcar ,converter ,thunks)
                        ,@body))))
-         (add-xpath-function ',ext ',name ',func-name)))))
+         (add-xpath-function ',ext ',name ',func-name ',args)))))
 
 (defmacro define-xpath-function/eager (ext name args &body body)
   (with-gensyms (thunk)
@@ -116,7 +169,8 @@
 (defmacro define-xpath-function/single-type (ext name type args &body body)
   (check-type type (member boolean number string node-set))
   (with-gensyms (thunk)
-    (let ((value-func-name (hypsym type 'value)))
+    (let ((value-func-name (intern (concat (string-upcase type) "-VALUE")
+                                   :xpath)))
       `(%define-xpath-function/eager ,ext ,name
            #'(lambda (,thunk) (,value-func-name (funcall ,thunk context)))
            ,args ,@body))))

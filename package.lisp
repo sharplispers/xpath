@@ -75,6 +75,7 @@
            #:boolean-value
            #:string-value
            #:number-value
+           #:node-set-value
 
            #:with-namespaces
            #:with-variables
@@ -107,6 +108,8 @@
            #:context-position
            #:context-size
 
+           #:get-node-id
+
            #:environment-find-namespace
            #:environment-find-variable
            #:environment-find-function
@@ -116,6 +119,8 @@
            #:define-xpath-function/lazy
            #:define-xpath-function/eager
            #:define-xpath-function/single-type
+
+           #:with-plx-extensions
 
            #:*navigator*
 

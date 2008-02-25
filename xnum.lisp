@@ -107,7 +107,11 @@
 (defun xnum-round (a)
   (if (or (nan-p a) (inf-p a))
       a
-      (round a)))
+      (multiple-value-bind (ceiling rem)
+          (ceiling a)
+        (if (= rem -0.5)
+            ceiling
+            (round a)))))
 
 (defun xnum-ceiling (a)
   (if (or (nan-p a) (inf-p a))

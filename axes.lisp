@@ -91,25 +91,35 @@ FIXME: need to implement all axes
                 (xpath-protocol:child-pipe node)))
 
 (define-axis :following-sibling (:document-order)
-  (unless (null (xpath-protocol:parent-node node))
-    (subpipe-after node (xpath-protocol:child-pipe
-                         (xpath-protocol:parent-node node)))))
+  (if (or (xpath-protocol:node-type-p node :namespace)
+          (xpath-protocol:node-type-p node :attribute))
+      empty-pipe
+      (unless (null (xpath-protocol:parent-node node))
+        (subpipe-after node (xpath-protocol:child-pipe
+                             (xpath-protocol:parent-node node))))))
 
 (define-axis :preceding-sibling (:reverse-document-order)
-  (let ((parent (xpath-protocol:parent-node node)))
-    (if parent
-        (nreverse (force (subpipe-before node (xpath-protocol:child-pipe
-                                               parent))))
-        empty-pipe)))
+  (if (or (xpath-protocol:node-type-p node :namespace)
+          (xpath-protocol:node-type-p node :attribute))
+      empty-pipe
+      (let ((parent (xpath-protocol:parent-node node)))
+        (if parent
+            (nreverse (force (subpipe-before node (xpath-protocol:child-pipe
+                                                   parent))))
+            empty-pipe))))
 
 ;; FIXME: test
 ;; FIXME: order
 
 (define-axis :following (:document-order)
-  (mappend-pipe (axis-function :descendant-or-self)
-                (mappend-pipe (axis-function :following-sibling)
-                              (funcall (axis-function :ancestor-or-self)
-                                       node))))
+  (append-pipes
+   (when (xpath-protocol:node-type-p node :attribute)
+    (xpath-protocol:child-pipe
+     (xpath-protocol:parent-node node)))
+   (mappend-pipe (axis-function :descendant-or-self)
+                 (mappend-pipe (axis-function :following-sibling)
+                               (funcall (axis-function :ancestor-or-self)
+                                        node)))))
 
 (define-axis :preceding (:reverse-document-order)
   (mappend-pipe (axis-function 'reverse-descendant-or-self)
@@ -130,7 +140,8 @@ FIXME: need to implement all axes
   (xpath-protocol:attribute-pipe node))
 
 (define-axis :namespace (:document-order :namespace)
-  (xpath-protocol:namespace-pipe node))
+  (when (xpath-protocol:node-type-p node :element)
+    (xpath-protocol:namespace-pipe node)))
 
 ;; FIXME: This is a pseudo-axis used to implement absolute paths.
 ;; Is this the right approach?

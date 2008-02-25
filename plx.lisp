@@ -71,3 +71,10 @@
 
 (define-xpath-function/lazy plx current ()
   #'(lambda (ctx) (make-node-set (make-pipe (context-starting-node ctx) nil))))
+
+(define-xpath-function/lazy plx generate-id (&optional node-set-thunk)
+  (if node-set-thunk
+      #'(lambda (ctx)
+          (get-node-id (node-set-value (funcall node-set-thunk ctx))))
+      #'(lambda (ctx)
+          (get-node-id (context-node ctx)))))

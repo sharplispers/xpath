@@ -347,3 +347,43 @@
    Sets the node which is considered \"starting\" one, i.e. for which the whole
    XPath extension is evaluated."
   (setf (slot-value context 'starting-node) node))
+
+(defun get-node-index (node)
+  (if (xpath-protocol:parent-node node)
+      (let ((n 0))
+        (block nil
+          (enumerate (xpath-protocol:child-pipe
+                      (xpath-protocol:parent-node node))
+                     :key #'(lambda (child)
+                              (when (eq node child)
+                                (return n))
+                              (incf n)))
+          n))
+      0))
+
+(let ((node-types '((:comment . "c")
+                    (:processing-instruction . "p")
+                    (:text . "t")
+                    (:attribute . "a")
+                    (:element . "e")
+                    (:namespace . "n"))))
+  (defun get-node-id (node-or-node-set)
+    "@arg[node-or-node-set]{a @class{node-set} or a single XML node}
+     @return{an alphanumeric string}
+     @short{Generates an unique identifier for the first node @code{node-set}
+     (or, if a node is specified, for that node).}
+
+     This function is analagous to generate-id() XSLT function."
+    (cond ((not (node-set-p node-or-node-set))
+           (concat
+            (if (xpath-protocol:parent-node node-or-node-set)
+                (get-node-id (xpath-protocol:parent-node node-or-node-set))
+                "")
+            (loop for (type . letter) in node-types
+                  when (xpath-protocol:node-type-p node-or-node-set type)
+                    do (return letter)
+                  finally (return "d"))
+            (princ-to-string (get-node-index node-or-node-set))))
+          ((node-set-empty-p node-or-node-set) "")
+          (t
+           (get-node-id (textually-first-node node-or-node-set))))))
