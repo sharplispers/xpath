@@ -63,7 +63,7 @@
   </xsl:template>
 
   <xsl:template name="header">
-    <div id="header">
+    <div id="homepage-header">
       <div style="margin-left: 30px">
 	<b>
 	  <span class="colored">

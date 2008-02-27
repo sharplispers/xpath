@@ -74,7 +74,17 @@ h1,h2,h3 {
   margin-left: -30px;
 }
 
+/* for API docs */
 #header {
+  padding-bottom: 1px;
+  width: 100%;
+  border-bottom: 1px solid black;
+  font-family: verdana, arial;
+  font-size: 15pt;
+}
+
+/* for the pages with a sidebar */
+#homepage-header {
   padding-bottom: 1px;
   width: 70%;
   border-bottom: 1px solid black;
