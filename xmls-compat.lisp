@@ -250,7 +250,7 @@
     ((navi xpath-navigator) (node xmls-attribute))
   (xmls-attribute-uri node))
 
-(defmethod xpath-protocol:string-value-using-navigator
+(defmethod xpath-protocol:node-text-using-navigator
     ((navi xpath-navigator) node)
   (with-output-to-string (*standard-output*)
     (labels ((write-text (node)

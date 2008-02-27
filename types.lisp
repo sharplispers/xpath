@@ -37,7 +37,7 @@
 ;; * string (a sequence of UCS characters) --> string
 
 (defun get-node-text (node)
-  (xpath-protocol:string-value node))
+  (xpath-protocol:node-text node))
 
 (defclass node-set ()
   ((pipe :accessor pipe-of :initform empty-pipe :initarg :pipe)
@@ -63,6 +63,10 @@
   (pipe-empty-p (pipe-of node-set)))
 
 (defun make-node-set (pipe &optional (ordering :unordered))
+  "@arg[pipe]{a pipe}
+   @arg[ordering]{one of :document-order, :reverse-document-order, :unordered}
+   @return{a node set}
+   Makes a node set containing nodes from the @code{pipe} with specified @code{ordering}."
   (let ((visited (make-hash-table)))
     (make-instance 'node-set
                    :pipe (filter-pipe
@@ -220,7 +224,7 @@
    For XML nodes returns the value of XPath boolean() function applied
    to the result of calling @see{string-value} for the specified @code{value}."
   (if (xpath-protocol:node-p value)
-      (boolean-value (xpath-protocol:string-value value))
+      (boolean-value (xpath-protocol:node-text value))
       (typecase value
         (string (not (equal value "")))
         (xnum (not (or (nan-p value)
@@ -236,7 +240,7 @@
    For XML nodes returns the value of XPath number() function applied
    to the result of calling @see{string-value} for the specified @code{value}."
   (if (xpath-protocol:node-p value)
-      (number-value (xpath-protocol:string-value value))
+      (number-value (xpath-protocol:node-text value))
       (typecase value
         (string (parse-xnum value)) ;; FIXME!!!! it should be double-float; how to handle junk? NaN?
         (xnum value)
@@ -248,10 +252,10 @@
    @return{an XPath string}
    @short{Returns the value of XPath number() function.}
 
-   For XML nodes returns the value of @see{xpath-protocol:string-value} applied
+   For XML nodes returns the value of @see{xpath-protocol:node-text} applied
    to the specified @code{value}."
   (if (xpath-protocol:node-p value)
-      (string-value (xpath-protocol:string-value value))
+      (string-value (xpath-protocol:node-text value))
       (typecase value
         (string value)
         (xnum (xnum->string value)) ;; fixme; probably also should use format string

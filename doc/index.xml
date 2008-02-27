@@ -1,0 +1,29 @@
+<page title="Xuriella XSLT">
+  <p>An XPath implementation written in Common Lisp.</p>
+
+  <h3>About</h3>
+
+  <p>
+    Plexippus XPath is an implementation of XPath 1.0.
+  </p>      
+
+  <p>
+    Please send bug reports
+    to <a href="mailto:plexippus-xpath-devel@common-lisp.net">
+      plexippus-devel@common-lisp.net</a>
+    (<a href="http://common-lisp.net/cgi-bin/mailman/listinfo/plexippus-xpath-devel">list information</a>).
+  </p>
+
+  <h3>Related projects</h3>
+  <ul>
+    <li>
+      <a href="http://common-lisp.net/project/cxml/">Closure XML</a>
+    </li>
+  </ul>
+
+  <h3>Recent Changes</h3>
+  <p><b>2008-xx-yy</b></p>
+  <ul>
+    <li>not released yet; work in progress</li>
+  </ul>
+</page>

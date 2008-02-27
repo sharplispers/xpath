@@ -1,0 +1,28 @@
+<page title="Installing Plexippus XPath">
+
+  <h3>Download</h3>
+  <p>
+    <strike>
+      Download a
+      <a href="#tbd">tarball</a>.
+    </strike>
+  </p>
+  <p>
+    Get it from darcs repository:
+    <pre>darcs get http://common-lisp.net/project/plexippus-xpath/darcs/plexippus-xpath/</pre>
+  </p>
+
+  <h3>Installation</h3>
+  <p>
+    Plexippus XPath needs
+    <a href="http://common-lisp.net/project/cxml">cxml</a>,
+  </p>
+  <p>
+    <a href="http://www.cliki.net/asdf">ASDF</a> is used for
+    compilation.  Register the .asd file, e.g. by symlinking it, then
+    compile Plexippus XPath using <tt>asdf:operate</tt>.
+  </p>
+  <pre>$ ln -sf `pwd`/xpath.asd /path/to/your/registry/
+* (asdf:operate 'asdf:load-op :xpath)</pre>
+
+</page>

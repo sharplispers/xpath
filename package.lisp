@@ -40,7 +40,7 @@
            #:qualified-name
            #:namespace-prefix
            #:namespace-uri
-           #:string-value
+           #:node-text
            #:processing-instruction-target
            #:node-type-p
            #:base-uri
@@ -57,7 +57,7 @@
            #:qualified-name-using-navigator
            #:namespace-prefix-using-navigator
            #:namespace-uri-using-navigator
-           #:string-value-using-navigator
+           #:node-text-using-navigator
            #:processing-instruction-target-using-navigator
            #:node-type-p-using-navigator
            #:base-uri-using-navigator
@@ -69,6 +69,20 @@
 (defpackage :xpath
   (:use cl)
   (:import-from :xpath-protocol #:define-default-method)
+  (:intern #:make-node-set
+           #:make-pipe
+           #:pipe-head
+           #:pipe-tail
+           #:pipe-of
+           #:get-node-id
+           #:environment-find-namespace
+           #:environment-find-variable
+           #:environment-find-function
+           #:find-xpath-function
+           #:define-extension
+           #:define-xpath-function/lazy
+           #:define-xpath-function/eager
+           #:define-xpath-function/single-type)
   (:export #:compile-xpath
            #:parse-xpath
 
@@ -94,12 +108,7 @@
            #:node-set-p
            #:node-set-empty-p
            #:node-set
-
-           #:make-node-set
-           #:make-pipe
-           #:pipe-head
-           #:pipe-tail
-           #:pipe-of
+           #:list->node-set
 
            #:context
            #:make-context
@@ -107,18 +116,6 @@
            #:context-starting-node
            #:context-position
            #:context-size
-
-           #:get-node-id
-
-           #:environment-find-namespace
-           #:environment-find-variable
-           #:environment-find-function
-
-           #:find-xpath-function
-           #:define-extension
-           #:define-xpath-function/lazy
-           #:define-xpath-function/eager
-           #:define-xpath-function/single-type
 
            #:with-plx-extensions
 
@@ -130,3 +127,38 @@
     TBD: document here:
     environments/variables, XPath sexpr-based syntax, representation of XPath
     types (incl. xnums), extensions, samples"))
+
+(defpackage :xpath-sys
+  (:import-from :xpath-protocol
+                #:define-default-method)
+  (:import-from :xpath
+                #:make-node-set
+                #:make-pipe
+                #:pipe-head
+                #:pipe-tail
+                #:pipe-of
+                #:get-node-id
+                #:environment-find-namespace
+                #:environment-find-variable
+                #:environment-find-function
+                #:find-xpath-function
+                #:define-extension
+                #:define-xpath-function/lazy
+                #:define-xpath-function/eager
+                #:define-xpath-function/single-type)
+  (:export #:make-node-set
+           #:make-pipe
+           #:pipe-head
+           #:pipe-tail
+           #:pipe-of
+           #:get-node-id
+           #:environment-find-namespace
+           #:environment-find-variable
+           #:environment-find-function
+           #:find-xpath-function
+           #:define-extension
+           #:define-xpath-function/lazy
+           #:define-xpath-function/eager
+           #:define-xpath-function/single-type)
+  (:documentation
+   "XPATH-SYS package contains API for extending Plexippus XPath."))

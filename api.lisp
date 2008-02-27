@@ -27,7 +27,6 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 (in-package :xpath)
 
 ;; public evaluation API
@@ -126,6 +125,12 @@
   (if (node-set-iterator-end-p iterator)
       nil
       (pipe-head (node-set-iterator-pipe iterator))))
+
+(defun list->node-set (list)
+  "@arg[list]{a list of nodes}
+   @return{a @class{node-set}}
+   Makes a @class{node-set} from the @code{list} of nodes."
+  (make-node-set list))
 
 (defmacro xpath (form)
   "@arg[form]{a sexpr-based XPath form}

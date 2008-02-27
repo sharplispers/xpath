@@ -49,7 +49,7 @@
   (defprotocol xpath-protocol:attribute-pipe)
   (defprotocol xpath-protocol:namespace-pipe)
   (defprotocol xpath-protocol:parent-node)
-  (defprotocol xpath-protocol:string-value)
+  (defprotocol xpath-protocol:node-text)
   (defprotocol xpath-protocol:qualified-name)
   (defprotocol xpath-protocol:local-name)
   (defprotocol xpath-protocol:namespace-prefix)
@@ -214,7 +214,7 @@
              table)
     result))
 
-(define-default-method xpath-protocol:string-value ((node dom:node))
+(define-default-method xpath-protocol:node-text ((node dom:node))
   ;; FIXME: support document and document-fragment
   (with-output-to-string (s)
     (labels ((write-text (node)
@@ -230,6 +230,9 @@
                                 (dom:cdata-section-p child))
                             (write-string (dom:node-value child) s))))))))
       (write-text node))))
+
+(define-default-method xpath-protocol:node-text ((node dom-namespace))
+  (dom-namespace-uri node))
 
 ;; currently computed from child-pipe
 ;;; (defmethod preceding-sibling-pipe ()

@@ -45,7 +45,7 @@
   @arg[local-name]{local part of expanded-name of the function}
   @arg[uri]{namespace URI of the function}
   @return{an XPath function or nil if it cannot be found}
-  @short{Finds an XPath function by @code{local-name} and @code{uri}.
+  @short{Finds an XPath function by @code{local-name} and @code{uri}}.
 
   XPath function is a Lisp function that takes zero or more \"thunks\"
   as its arguments (corresponding to XPath expressions passed as function
@@ -58,7 +58,7 @@
   @arg[local-name]{local part of expanded-name of the function}
   @arg[uri]{namespace URI of the function}
   @return{XPath variable \"thunk\"}
-  @short{Finds an XPath variable by @code{local-name} and @code{uri}.
+  @short{Finds an XPath variable by @code{local-name} and @code{uri}}.
   
   XPath variable is represented by a \"thunk\". A \"thunk\" is a function
   that takes an instance of @class{context} as its argument and returns

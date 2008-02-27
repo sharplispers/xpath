@@ -526,7 +526,7 @@
       "plx:generate-id() = plx:generate-id(/)"))))
 
 (deftest test-xmls
-  (let ((xpath:*navigator* (cxml-xmls:make-xpath-navigator))
+  (let ((*navigator* (cxml-xmls:make-xpath-navigator))
         (d
          '("foo" (("a" "b"))
            " "
@@ -542,4 +542,4 @@
            " " ("last" NIL))))
     (assert-equal
      '(("a" (("id" "1"))) ("c" (("id" "6"))))
-     (xpath:all-nodes (xpath:evaluate "//c[position()=2]|//a[@id='1']" d)))))
+     (all-nodes (evaluate "//c[position()=2]|//a[@id='1']" d)))))
