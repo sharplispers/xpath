@@ -34,6 +34,29 @@
 (defparameter *plx-uri* "http://common-lisp.net/project/plexippus-xpath/plx")
 
 (defmacro with-plx-extensions (&body body)
+  "Binds plx prefix to Plexippus XPath extensions namespace.
+
+   The following functions are currently available:
+
+   @pre{plx:matches(string, pattern, flags?)}
+   Returns true if @code{string} is matched by regular expression @code{pattern},
+   false otherwise. Optional @code{flags} specify modifiers (i, m, s). CL-PPCRE
+   is used as regular expression engine.
+
+   @pre{plx:replace(string, pattern, replacement, flags?)}
+   Returns @code{string} with all matches of regular expression @code{pattern}
+   replaced with @code{replacement}. Optional @code{flags} specify modifiers
+   (i, m, s).
+
+   @pre{plx:current()}
+   Returns a @class{node-set} consisting of one node which was specifed
+   as context node for expression evaluation. Analagous to @code{current()}
+   function of XSLT.
+
+   @pre{plx:generate-id(node-set?)}
+   Returns an alphanumeric string that uniquely identifies the first node of
+   the @code{node-set} (or context node if @code{node-set} isn't specified)
+   within its document. Analagous to @code{generate-id()} of XSLT."
   `(with-namespaces (("plx" *plx-uri*)) ,@body))
 
 (define-extension plx *plx-uri*)

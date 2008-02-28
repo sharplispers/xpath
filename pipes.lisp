@@ -37,18 +37,43 @@
 (defun pipe-empty-p (pipe) (eq pipe empty-pipe))
 
 (defmacro make-pipe (head tail)
+  "@arg[head]{pipe head (evaluated)}
+   @arg[tail]{tail expression}
+   @return{a pipe}
+   @short{Constructs a pipe (lazy list).}
+
+   The @code{head} expression is evaluated immediatelly. The value of @code{head} will
+   be returned by @fun{pipe-head} called for the pipe object returned by @code{make-pipe}.
+   Evaluation of @code{tail} expression is delayed until @fun{pipe-tail} is called for
+   the pipe returned by this function. Evaluation of @code{tail} expression should produce
+   a pipe or a list."
   `(cons ,head #'(lambda () ,tail)))
 
-(defun pipe-head (pipe) (car pipe))
+(defun pipe-head (pipe)
+  "@arg[pipe]{a pipe}
+   @return{an object}
+   Returns the head of the @code{pipe}."
+  (car pipe))
 
 (defun pipe-tail (pipe)
+  "@arg[pipe]{a pipe}
+   @return{an object}
+   @short{Returns the tail of the list.}
+
+   First time @code{pipe-tail} is called it causes pipe tail expression to be evaluated
+   and remembered for later calls."
   (if (functionp (cdr pipe))
       (setf (cdr pipe) (funcall (cdr pipe)))
       (cdr pipe)))
 
 (defun enumerate (pipe &key count key (result pipe))
-  "go through all or count elements of pipe,
-  possibly applying the key function. "
+  "@arg[pipe]{a pipe}
+   @arg[count]{a non-negative integer}
+   @arg[key]{a function}
+   @arg[result]{an object]
+   @return{the value of @key{result} (the value of @code{pipe} by default)}
+   Goes through all or @code{count} elements of pipe,
+   possibly applying the @code{key} function."
   (if (or (pipe-empty-p pipe) (eql count 0))
       result
       (progn

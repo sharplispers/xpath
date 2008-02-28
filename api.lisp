@@ -102,13 +102,13 @@
   (%make-node-set-iterator (pipe-of node-set)))
 
 (defun node-set-iterator-end-p (iterator)
-  "@arg[iterator]{a node-set iterator returned by @see{make-node-set-iterator}}
+  "@arg[iterator]{a node-set iterator returned by @fun{make-node-set-iterator}}
    @return{a generalized boolean}
    Returns true if @code{iterator} points to the end of its node set"
   (pipe-empty-p (node-set-iterator-pipe iterator)))
 
 (defun node-set-iterator-next (iterator)
-  "@arg[iterator]{a node-set iterator returned by @see{make-node-set-iterator}}
+  "@arg[iterator]{a node-set iterator returned by @fun{make-node-set-iterator}}
    @return{the value of @code{iterator}}
    Advances @code{iterator} if it's not at the end of its node set,
    does nothing otherwise."
@@ -118,7 +118,7 @@
   iterator)
 
 (defun node-set-iterator-current (iterator)
-  "@arg[iterator]{a node-set iterator returned by @see{make-node-set-iterator}}
+  "@arg[iterator]{a node-set iterator returned by @fun{make-node-set-iterator}}
    @return{a node or nil}
    Returns current node of @code{iterator} or nil if it's at the end
    of its node set."
@@ -135,7 +135,7 @@
 (defmacro xpath (form)
   "@arg[form]{a sexpr-based XPath form}
    @return{a list consisting of symbol XPATH and the @code{form}}
-   This macro is used to specify sexpr-based XPath expression for @see{evaluate}"
+   This macro is used to specify sexpr-based XPath expression for @fun{evaluate}"
   `(list 'xpath ',form))
 
 (deftype xpath-expr ()
@@ -164,9 +164,9 @@
   "@arg[compiled-xpath]{a compiled XPath expression}
    @arg[context]{an XPath context}
    @return{the result of evaluating @code{compiled-xpath} within the @code{context}}
-   @short{Evaluates a compiled XPath expression returned by @see{compile-xpath}}
+   @short{Evaluates a compiled XPath expression returned by @fun{compile-xpath}}
 
-   The @code{context} can be obtained using @see{make-context}. As an alternative,
+   The @code{context} can be obtained using @fun{make-context}. As an alternative,
    a node can be specifed."
   ;; FIXME: Should this perhaps compute position and size based on
   ;; the node's siblings instead?
@@ -187,7 +187,7 @@
    @short{Evaluates an XPath expression}
 
    @code{xpath} can be a string, a sexpr-based XPath epression or
-   a compiled expression. The @code{context} can be obtained using @see{make-context}.
+   a compiled expression. The @code{context} can be obtained using @fun{make-context}.
    As an alternative, a node can be specifed."
   (with-gensyms (cache)
     (once-only (xpath)
@@ -212,5 +212,9 @@
   ()
   (:documentation "The class of all xpath errors."))
 
+;; FIXME: function & condition of the same name cause problems for atdoc
 (defun xpath-error (fmt &rest args)
+  "@arg[fmt]{format control string}
+   @arg[args]{format arguments}
+   Signals the @class{xpath-error} condition with specified message."
   (error 'xpath-error :format-control fmt :format-arguments args))

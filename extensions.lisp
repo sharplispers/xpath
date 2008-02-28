@@ -82,6 +82,32 @@
     (push new-ext (gethash uri *extensions*))))
 
 (defmacro define-extension (name uri &optional documentation)
+  "@arg[name]{the name of XPath extension (a symbol)}
+   @arg[uri]{URI corresponding to XPath extension (a string)}
+   @arg[documentation]{documentation string for the XPath extension}
+   @short{Defines an XPath extension with specified @code{name} and @code{uri}.}
+
+   An XPath extension is a collection of XPath functions that are defined
+   using one of @fun{define-xpath-function/lazy},
+   @fun{define-xpath-function/eager} or @fun{define-xpath-function/single-type}
+   macros. In order to use the extension, one must bind a prefix string to
+   its @code{uri} using @fun{with-namespaces} macro.
+
+   Example:
+   @begin{pre}
+   (defparameter *my-namespace* \"http://example.net/my-xpath-extension\")
+
+   (xpath-sys:define-extension
+       my-ext *my-namespace*
+     \"My Extension\")
+
+   (xpath-sys:define-xpath-function/single-type my-ext add-quotes string (string)
+     (concat \"\\\"\" string \"\\\"\"))
+
+   (defun get-my-quoted-string(doc)
+     (with-namespaces ((\"my\" *my-namespace*))
+       (evaluate \"add-quotes(//some-element)\" doc)))
+   @end{pre}"
   (check-type name symbol)
   `(%define-extension ',name ,uri ,documentation))
 
@@ -135,7 +161,31 @@
                           (error "no such extension: ~s" ext))))
             (make-xpath-function func real-name min-args max-args)))))
 
+;; FIXME: atdoc: handle slashes properly
 (defmacro define-xpath-function/lazy (ext name args &body body)
+  "@arg[ext]{name of an XPath extension (a symbol)}
+   @arg[name]{XPath function name}
+   @arg[args]{XPath function arguments}
+   @short{Defines an XPath function, \"lazy\" style.}
+
+   The @code{body} is evaluated during compilation of XPath
+   expressions each time the function being defined is referenced.
+   It's passed a list of \"thunks\" corresponding to XPath function arguments
+   and should return a new \"thunk\". A \"thunk\" is a function that takes
+   an XPath @class{context} as argument and returns value of one of XPath
+   types (string, boolean, number, node set).
+
+   Example:
+   @begin{pre}
+   (define-xpath-function/lazy my-ext my-if (v if-part else-part)
+     #'(lambda (ctx)
+         (if (boolean-value (funcall v ctx))
+             (funcall if-part ctx)
+             (funcall else-part ctx))))
+   @end{pre}
+   @see{define-xpath-extension}
+   @see{define-xpath-function/eager}
+   @see{define-xpath-function/single-type}"
   (with-gensyms (thunks)
     (let ((func-name (hypsym 'xfd name)))
       `(progn
@@ -161,12 +211,51 @@
          (add-xpath-function ',ext ',name ',func-name ',args)))))
 
 (defmacro define-xpath-function/eager (ext name args &body body)
+  "@arg[ext]{name of an XPath extension (a symbol)}
+   @arg[name]{XPath function name}
+   @arg[args]{XPath function arguments}
+   @short{Defines an XPath function, \"eager\" style.}
+
+   The @code{body} is evaluated during evaluation of XPath
+   expressions each time the function being defined is called.
+   It's passed a list of values corresponding to XPath function arguments
+   and should return a value of one of XPath types (string, boolean, number,
+   node set).
+
+   Example:
+   @begin{pre}
+   (define-xpath-function/eager my-ext join (delim node-set)
+     (reduce (lambda (a b) (concatenate 'string a delim b))
+             (map-node-set->list #'string-value node-set)))
+   @end{pre}
+   @see{define-xpath-extension}
+   @see{define-xpath-function/lazy}
+   @see{define-xpath-function/single-type}"
   (with-gensyms (thunk)
     `(%define-xpath-function/eager ,ext ,name
          #'(lambda (,thunk) (funcall ,thunk context))
          ,args ,@body)))
 
 (defmacro define-xpath-function/single-type (ext name type args &body body)
+  "@arg[ext]{name of an XPath extension (a symbol)}
+   @arg[name]{XPath function name}
+   @arg[args]{XPath function arguments}
+   @short{Defines an XPath function, \"eager\" style with automatic type conversion.}
+
+   The @code{body} is evaluated during evaluation of XPath
+   expressions each time the function being defined is called.
+   It's passed a list of values corresponding to XPath function arguments
+   and should return a value of one of XPath types (string, boolean, number,
+   node set). Argument values are automatically converted to specified XPath @code{type}.
+
+   Example:
+   @begin{pre}
+   (xpath-sys:define-xpath-function/single-type my-ext add-quotes string (string)
+     (concat \"\\\"\" string \"\\\"\"))
+   @end{pre}
+   @see{define-xpath-extension}
+   @see{define-xpath-function/lazy}
+   @see{define-xpath-function/eager}"
   (check-type type (member boolean number string node-set))
   (with-gensyms (thunk)
     (let ((value-func-name (intern (concat (string-upcase type) "-VALUE")

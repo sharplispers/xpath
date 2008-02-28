@@ -40,9 +40,23 @@
   (xpath-protocol:node-text node))
 
 (defclass node-set ()
-  ((pipe :accessor pipe-of :initform empty-pipe :initarg :pipe)
+  ((pipe :initform empty-pipe :initarg :pipe)
    (ordering :accessor ordering-of :initform :unordered :initarg :ordering))
   (:documentation "Represents an XPath node set"))
+
+(defun pipe-of (node-set)
+  "@arg[node-set]{a node set}
+   @return{a pipe}
+   Returns the pipe that contains the elements of the @code{node-set}."
+  (slot-value node-set 'pipe))
+
+;; FIXME: (setf ...) functions aren't documented by atdoc
+(defun (setf pipe-of) (pipe node-set)
+  "@arg[pipe]{a pipe}
+   @arg[node-set]{a node-set}
+   @return{the value of @code{pipe}}
+   Sets the pipe that contains the element sof the @code{node-set}."
+  (setf (slot-value node-set 'pipe) pipe))
 
 (defmethod print-object ((object node-set) stream)
   (print-unreadable-object (object stream :type t :identity t)
@@ -222,7 +236,7 @@
    @short{Returns the value of XPath boolean() function.}
 
    For XML nodes returns the value of XPath boolean() function applied
-   to the result of calling @see{string-value} for the specified @code{value}."
+   to the result of calling @fun{string-value} for the specified @code{value}."
   (if (xpath-protocol:node-p value)
       (boolean-value (xpath-protocol:node-text value))
       (typecase value
@@ -238,7 +252,7 @@
    @short{Returns the value of XPath number() function.}
 
    For XML nodes returns the value of XPath number() function applied
-   to the result of calling @see{string-value} for the specified @code{value}."
+   to the result of calling @fun{string-value} for the specified @code{value}."
   (if (xpath-protocol:node-p value)
       (number-value (xpath-protocol:node-text value))
       (typecase value
@@ -252,7 +266,7 @@
    @return{an XPath string}
    @short{Returns the value of XPath number() function.}
 
-   For XML nodes returns the value of @see{xpath-protocol:node-text} applied
+   For XML nodes returns the value of @fun{xpath-protocol:node-text} applied
    to the specified @code{value}."
   (if (xpath-protocol:node-p value)
       (string-value (xpath-protocol:node-text value))
