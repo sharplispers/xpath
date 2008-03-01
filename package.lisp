@@ -109,6 +109,7 @@
            #:node-set-empty-p
            #:node-set
            #:list->node-set
+           #:sort-node-set
 
            #:context
            #:make-context

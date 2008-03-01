@@ -39,7 +39,8 @@
               local-name
               uri)
       (and (xpath-protocol:node-type-p node principal-node-type)
-           (string= (xpath-protocol:namespace-uri node) uri)
+           (or (eq principal-node-type :namespace)
+               (string= (xpath-protocol:namespace-uri node) uri))
            (string= (xpath-protocol:local-name node) local-name))))
 
 (defun node-test-namespace (uri)

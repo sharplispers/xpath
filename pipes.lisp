@@ -172,3 +172,17 @@
      for p = pipe then (pipe-tail p)
      while (and p (not (funcall test (pipe-head p) elt)))
      finally (return (pipe-tail p))))
+
+(defun find-in-pipe (item pipe &key (test #'equal) (key #'identity))
+  (loop
+    for p = pipe then (pipe-tail p)
+    while p
+    when (funcall test item (funcall key (pipe-head p)))
+      do (return (pipe-head p))))
+
+(defun find-in-pipe-if (pred pipe &key (key #'identity))
+  (loop
+    for p = pipe then (pipe-tail p)
+    while p
+    when (funcall pred (funcall key (pipe-head p)))
+      do (return (pipe-head p))))

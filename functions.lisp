@@ -67,7 +67,7 @@
 
 (define-xpath-function/eager xpath := (a b) (compare-values 'equal a b))
 
-(define-xpath-function/eager xpath :/= (a b) (not (compare-values 'equal a b)))
+(define-xpath-function/eager xpath :/= (a b) (compare-values 'not-equal a b))
 
 (define-xpath-function/eager xpath :< (a b) (compare-values '< a b))
 
@@ -90,6 +90,28 @@
 (define-xpath-function/eager xpath :false () nil)
 
 (define-xpath-function/single-type xpath :boolean boolean (value) value)
+
+(defun get-lang-attribute (node)
+  (or (and (xpath-protocol:node-type-p node :element)
+           (let ((lang-attr (find-in-pipe-if
+                             #'(lambda (attr)
+                                 (and (equal "lang" (xpath-protocol:local-name attr))
+                                      (equal (xpath-protocol:namespace-uri attr)
+                                             "http://www.w3.org/XML/1998/namespace")))
+                             (xpath-protocol:attribute-pipe node))))
+             (when lang-attr (string-value lang-attr))))
+      (let ((parent (xpath-protocol:parent-node node)))
+        (and parent (get-lang-attribute parent)))))
+
+(define-xpath-function/single-type xpath :lang string (value)
+  (let ((lang (get-lang-attribute (context-node context)))
+        (value (string-downcase value)))
+    (when lang
+      (or
+       (equal value (string-downcase lang))
+       (cl-ppcre:register-groups-bind (primary-lang sublang) ("^([A-Za-z]{2})(?:-([A-Za-z]{2})|$)" lang)
+         (or (equal value (string-downcase primary-lang))
+             (equal value (string-downcase sublang))))))))
 
 ;; node-set functions
 

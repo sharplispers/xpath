@@ -51,7 +51,7 @@
 (defun compare-numbers (op a b) ; FIXME: this func too hairy
   (and (not (nan-p a))
        (not (nan-p b))
-       (labels ((v= () (or (eq a b) (and (numbers-p) (= a b))))
+       (labels ((v= () (or (eq a b) (and (numbers-p) (= (coerce a 'double-float) (coerce b 'double-float)))))
                 (numbers-p () (and (numberp a) (numberp b)))
                 (v<= () (or (eq a :-inf) (eq b :inf) (and (numbers-p) (< a b))))
                 (v>= () (or (eq a :inf) (eq b :-inf) (and (numbers-p) (> a b)))))
@@ -126,6 +126,7 @@
 (defun preprocess-number-str (str)
   (cond ((position #\e str) (string-replace str "e" "d"))
         ((position #\d str) str)
+        ((string= str ".") "")
         ((position #\. str) (concat str "d0"))
         (t str)))
 
@@ -139,11 +140,12 @@
       :nan)))
 
 (defun xnum->string (xnum)
+  ;; FIXME: this is not quite correct
   (case xnum
     (:nan "NaN")
     (:inf "Infinity")
     (:-inf "-Infinity")
-    (t (string-replace (princ-to-string xnum) "d" "e"))))
+    (t (cl-ppcre:regex-replace "\\.?0*$" (string-replace (format nil "~f" xnum) "d" "e") ""))))
 
 ;; TODO: converting to string
 (deftest test-xnum
@@ -162,7 +164,8 @@
            (compare-numbers '< :-inf 42)
            (compare-numbers '> :inf 42)
            (compare-numbers '<= :-inf 42)
-           (compare-numbers '>= :inf 42))
+           (compare-numbers '>= :inf 42)
+           (compare-numbers 'equal 1/10000 0.0001d0))
   (loop for op in '(equal < > <= >=)
         do (assert* (not (compare-numbers op :nan :nan))
                     (not (compare-numbers op :nan :inf))

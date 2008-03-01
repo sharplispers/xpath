@@ -144,7 +144,7 @@
              (not (compare-values 'equal (sample-node-set "<a href='zzz'>qqq</a><span>fff</span>")
                                   (sample-node-set "<span>fff1</span><span>fff3</span>")))
              (compare-values 'equal t (sample-node-set "<span>q</span>"))
-             (compare-values 'equal nil (sample-node-set "<span/>"))
+             (compare-values 'equal nil (make-node-set nil))
              (compare-values 'equal 99 (sample-node-set "<span>123</span><span>99</span>"))
              (compare-values 'equal (sample-node-set "<span>123</span><span>99</span>") 99)
              (not (compare-values 'equal 42 (sample-node-set "<span>123</span><span>99</span>")))
@@ -175,7 +175,9 @@
              (not (compare-values '> (2values 1 2) (2values 3 4)))
              (not (compare-values '>= (2values 1 2) (2values 3 5)))
              (not (compare-values '< (2values 9 10) (2values 3 4)))
-             (not (compare-values '<= (2values 9 10) (2values 3 4))))))
+             (not (compare-values '<= (2values 9 10) (2values 3 4)))
+             (compare-values 'equal t 4)
+             (compare-values 'equal nil 0))))
 
 (defmacro verify-xpath* (xml &rest items)
   (once-only (xml)
@@ -356,7 +358,8 @@
      ("47" "sum(//span[@id='s5']|//h4)")
      ("0" "sum(//span[.!=.])")
      ("NaN" "sum(//span)")
-     ("" "concat(local-name(//text()[1]), name(//text()[1]), namespace-uri(//text()[1]))"))
+     ("" "concat(local-name(//text()[1]), name(//text()[1]), namespace-uri(//text()[1]))")
+     ("true" "true() = 4" (= (:true) 4)))
     (verify-xpath*
      *sample-xml-3*
      ("W" (:id "w") "id('w')")

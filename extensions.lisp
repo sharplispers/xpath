@@ -53,16 +53,13 @@
   (let ((func (funcall (xpath-function-compiler xpath-function) argument-thunks))
         (name (xpath-function-name xpath-function)))
     #'(lambda (context)
-        (handler-bind ((xpath-error
-                        #'(lambda (condition)
-                            (declare (ignore condition)) nil))
-                       (error
-                        #'(lambda (condition)
-                            ;; we're not using xpath-error here because all lisp errors
-                            ;; should be explicitly handled
-                            (error "~a(): error: ~a"
-                                   name condition))))
-          (funcall func context)))))
+        (handler-case
+            (funcall func context)
+          (xpath-error (condition)
+            (xpath-error "~a: error: ~a" name condition))
+          (error (condition)
+            (error "~a(): error: ~a: ~a"
+                   name (type-of condition) condition))))))
 
 (defun %define-extension (name uri documentation)
   (check-type uri string)

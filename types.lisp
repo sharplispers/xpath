@@ -90,6 +90,13 @@
                           pipe)
                    :ordering ordering)))
 
+(defun sort-node-set (node-set)
+  "@arg[node-set]{a node set}
+   @return{a sorted version of @code{node-set}}
+   Sorts the @code{node-set} according to document order."
+  (make-node-set (sorted-pipe-of node-set)
+                 :document-order))
+
 (defun sorted-pipe-of (node-set)
   (sort-pipe (pipe-of node-set) (ordering-of node-set)))
 
@@ -187,21 +194,46 @@
   (sort (copy-list (force pipe)) #'node<))
 
 (defun compare-node-sets (op a b) ;; FIXME: may be inefficient in some cases
-  (if (eq op 'equal)
-      (let ((table (make-hash-table :test #'equal)))
-        (block nil
-          (enumerate (pipe-of a) :key #'(lambda (item) (setf (gethash (get-node-text item) table) t)))
-          (enumerate (pipe-of b) :key #'(lambda (item) (when (gethash (get-node-text item) table) (return t))))
-          nil))
-      (block nil
-        (enumerate (pipe-of a) ;; FIXME: use min/max finding or something for <, >, <=, >=
-                   :key #'(lambda (x)
-                            (let ((x (number-value (get-node-text x))))
-                              (enumerate (pipe-of b)
-                                         :key #'(lambda (y)
-                                                  (when (funcall op x (number-value (get-node-text y)))
-                                                    (return t)))))))
-        nil)))
+  (cond ((or (node-set-empty-p a)
+             (node-set-empty-p b))
+         nil)
+        ((eq op 'equal)
+         (let ((table (make-hash-table :test #'equal)))
+           (block nil
+             (enumerate (pipe-of a) :key #'(lambda (item) (setf (gethash (get-node-text item) table) t)))
+             (enumerate (pipe-of b)
+                        :key #'(lambda (item)
+                                 (when (gethash (get-node-text item) table)
+                                   (return t))))
+             nil)))
+        ((eq op 'not-equal)
+         (let ((got-value-p nil)
+               first-str)
+           ;; NOT-EQUAL op returns false for two node sets in two cases
+           ;; a) one of them is empty (checked above)
+           ;; b) number of unique string-values of nodes in union of both node sets = 1
+           (block nil
+             (enumerate (pipe-of a) :key #'(lambda (item)
+                                             (let ((str (get-node-text item)))
+                                               (cond ((not got-value-p)
+                                                      (setf first-str str got-value-p t))
+                                                     ((string/= str first-str)
+                                                      (return t))))))
+             (enumerate (pipe-of b) :key #'(lambda (item)
+                                             (let ((str (get-node-text item)))
+                                               (when (string/= str first-str)
+                                                (return t)))))
+             nil)))
+        (t
+         (block nil
+           (enumerate (pipe-of a) ;; FIXME: use min/max finding or something for <, >, <=, >=
+                      :key #'(lambda (x)
+                               (let ((x (number-value (get-node-text x))))
+                                 (enumerate (pipe-of b)
+                                            :key #'(lambda (y)
+                                                     (when (funcall op x (number-value (get-node-text y)))
+                                                       (return t)))))))
+           nil))))
 
 (defun compare-with-node-set (op node-set value)
   (block nil
@@ -212,7 +244,11 @@
     nil))
 
 (defun compare/no-node-sets (op a b)
-  (cond ((or (not (eq op 'equal))
+  (cond ((eq op 'not-equal)
+         (not (compare/no-node-sets 'equal a b)))
+        ((and (eq op 'equal) (or (typep a 'boolean) (typep b 'boolean)))
+         (equal (boolean-value a) (boolean-value b)))
+        ((or (not (eq op 'equal))
              (xnum-p a)
              (xnum-p b))
          (compare-numbers op (number-value a) (number-value b))) ;; FIXME: NaN
@@ -224,10 +260,20 @@
 (defun compare-values (op a b)
   (cond ((and (node-set-p a) (node-set-p b))
          (compare-node-sets op a b))
+        ((or (and (node-set-p a) (typep b 'boolean))
+             (and (typep a 'boolean) (node-set-p b)))
+         (compare/no-node-sets op (boolean-value a) (boolean-value b)))
         ((node-set-p a)
          (compare-with-node-set op a b))
         ((node-set-p b)
-         (compare-with-node-set op b a))
+         (compare-with-node-set (ecase op
+                                  (equal 'equal)
+                                  (not-equal 'not-equal)
+                                  (< '>)
+                                  (<= '>=)
+                                  (> '<)
+                                  (>= '<=))
+                                b a))
         (t (compare/no-node-sets op a b))))
 
 (defun boolean-value (value)

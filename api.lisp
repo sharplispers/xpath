@@ -160,18 +160,29 @@
                                (second xpath))
                            environment)))
 
-(defun evaluate-compiled (compiled-xpath context)
+(defun evaluate-compiled (compiled-xpath context &optional unordered-p)
   "@arg[compiled-xpath]{a compiled XPath expression}
    @arg[context]{an XPath context}
+   @arg[unordered-p]{specify true to get unordered node-set}
    @return{the result of evaluating @code{compiled-xpath} within the @code{context}}
    @short{Evaluates a compiled XPath expression returned by @fun{compile-xpath}}
 
    The @code{context} can be obtained using @fun{make-context}. As an alternative,
-   a node can be specifed."
+   a node can be specifed.
+
+   If @code{unordered-p} is false (default) and value being returned is a @class{node-set},
+   it will be sorted using @fun{sort-node-set} so its nodes will be in document
+   order. If @code{unordered-p} is true, the order of the nodes is unspecified.
+   Unordered mode can be significantly faster in some cases (and never slower)."
   ;; FIXME: Should this perhaps compute position and size based on
   ;; the node's siblings instead?
-  (funcall compiled-xpath
-           (if (typep context 'context) context (make-context context))))
+  (let ((value
+         (funcall compiled-xpath
+                  (if (typep context 'context) context (make-context context)))))
+    (if (and (not unordered-p)
+             (node-set-p value))
+        (sort-node-set value)
+        value)))
 
 (defun same-expr-p (prev-expr xpath cur-bindings)
   (and (equal xpath (first prev-expr))
@@ -180,15 +191,21 @@
                do (return nil)
              finally (return t))))
 
-(defmacro evaluate (xpath context)
+(defmacro evaluate (xpath context &optional unordered-p)
   "@arg[xpath]{an XPath expression}
    @arg[context]{an XPath context}
+   @arg[unordered-p]{specify true to get unordered node-set}
    @return{the result of evaluating @code{xpath} within the @code{context}}
    @short{Evaluates an XPath expression}
 
    @code{xpath} can be a string, a sexpr-based XPath epression or
    a compiled expression. The @code{context} can be obtained using @fun{make-context}.
-   As an alternative, a node can be specifed."
+   As an alternative, a node can be specifed.
+
+   If @code{unordered-p} is false (default) and value being returned is a @class{node-set},
+   it will be sorted using @fun{sort-node-set} so its nodes will be in document
+   order. If @code{unordered-p} is true, the order of the nodes is unspecified.
+   Unordered mode can be significantly faster in some cases (and never slower)."
   (with-gensyms (cache)
     (once-only (xpath)
       `(evaluate-compiled
@@ -204,7 +221,8 @@
                          (compile-xpath ,xpath
                                         (make-dynamic-environment *dynamic-namespaces*)))
                    (setf (car ,cache) (cons ,xpath *dynamic-namespaces*))))))
-        ,context))))
+        ,context
+        ,unordered-p))))
 
 ;; errors
 

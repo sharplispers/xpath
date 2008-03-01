@@ -112,14 +112,16 @@ FIXME: need to implement all axes
 ;; FIXME: order
 
 (define-axis :following (:document-order)
-  (append-pipes
-   (when (xpath-protocol:node-type-p node :attribute)
-    (xpath-protocol:child-pipe
-     (xpath-protocol:parent-node node)))
-   (mappend-pipe (axis-function :descendant-or-self)
-                 (mappend-pipe (axis-function :following-sibling)
-                               (funcall (axis-function :ancestor-or-self)
-                                        node)))))
+  (if (xpath-protocol:node-type-p node :attribute)
+      (append-pipes
+       (funcall (axis-function :descendant)
+                (xpath-protocol:parent-node node))
+       (funcall (axis-function :following)
+                (xpath-protocol:parent-node node)))
+      (mappend-pipe (axis-function :descendant-or-self)
+                    (mappend-pipe (axis-function :following-sibling)
+                                  (funcall (axis-function :ancestor-or-self)
+                                           node)))))
 
 (define-axis :preceding (:reverse-document-order)
   (mappend-pipe (axis-function 'reverse-descendant-or-self)

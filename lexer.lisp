@@ -202,7 +202,7 @@
    (if (and dot (zerop (length digits)))
        :dot
        (values :number (handler-case
-                           (parse-number:parse-number value)
+                           (parse-number:parse-number (preprocess-number-str value))
                          (org.mapcar.parse-number::invalid-number ()
                            ;; re-signal this condition, because it's not
                            ;; a subclass of error
