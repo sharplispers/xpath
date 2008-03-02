@@ -1,4 +1,4 @@
-;;; -*- show-trailing-whitespace: t; indent-tabs: nil -*-
+;;; -*- show-trailing-whitespace: t; indent-tabs-mode: nil -*-
 
 ;;; Copyright (c) 2008 Ivan Shvedunov. All rights reserved.
 ;;; Copyright (c) 2008 David Lichteblau. All rights reserved.
