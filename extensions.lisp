@@ -53,13 +53,7 @@
   (let ((func (funcall (xpath-function-compiler xpath-function) argument-thunks))
         (name (xpath-function-name xpath-function)))
     #'(lambda (context)
-        (handler-case
-            (funcall func context)
-          (xpath-error (condition)
-            (xpath-error "~a: error: ~a" name condition))
-          (error (condition)
-            (error "~a(): error: ~a: ~a"
-                   name (type-of condition) condition))))))
+        (funcall func context))))
 
 (defun %define-extension (name uri documentation)
   (check-type uri string)
