@@ -315,3 +315,11 @@
 (defmethod xpath-protocol:namespace-pipe-using-navigator
     ((navi xpath-navigator) (node string))
   nil)
+
+(defmethod xpath-protocol:get-element-by-id
+    ((navi xpath-navigator) (node t) (id t))
+  nil)
+
+(defmethod xpath-protocol:unparsed-entity-uri
+    ((navi xpath-navigator) (node t) (name t))
+  nil)

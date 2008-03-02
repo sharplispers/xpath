@@ -57,7 +57,8 @@
   (defprotocol xpath-protocol:processing-instruction-target)
   (defprotocol xpath-protocol:node-type-p type)
   (defprotocol xpath-protocol:base-uri)
-  (defprotocol xpath-protocol:get-element-by-id id))
+  (defprotocol xpath-protocol:get-element-by-id id)
+  (defprotocol xpath-protocol:unparsed-entity-uri name))
 
 (defmacro define-default-method (name (&rest args) &body body)
   (let ((navi-name
@@ -267,6 +268,18 @@
 (define-default-method xpath-protocol:get-element-by-id ((node dom:node) id)
   (dom:get-element-by-id
    (if (dom:document-p node) node (dom:owner-document node)) id))
+
+(define-default-method xpath-protocol:unparsed-entity-uri
+    ((node dom:node) name)
+  (let ((dtd (rune-dom::dtd (if (dom:document-p node)
+				node
+				(dom:owner-document node)))))
+    (when dtd
+      (let ((entdef (cdr (gethash name (cxml::dtd-gentities dtd)))))
+	(when (typep entdef 'cxml::external-entdef)
+	  (let ((uri (cxml::extid-system (cxml::entdef-extid entdef))))
+	    (when uri
+	      (puri:render-uri uri nil))))))))
 
 ;; Character data
 

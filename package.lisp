@@ -45,6 +45,7 @@
            #:node-type-p
            #:base-uri
            #:get-element-by-id
+	   #:unparsed-entity-uri
 
            #:define-default-method
 
@@ -61,7 +62,8 @@
            #:processing-instruction-target-using-navigator
            #:node-type-p-using-navigator
            #:base-uri-using-navigator
-           #:get-element-by-id-using-navigator)
+           #:get-element-by-id-using-navigator
+	   #:unparsed-entity-uri-using-navigator)
   (:documentation
    "XPATH-PROTOCOL package contains generic functions that are used to support
     multiple representations of XML documents for XPath."))
