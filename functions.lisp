@@ -154,7 +154,7 @@
                  :key #'(lambda (node)
                           (let ((num (number-value node)))
                             (if (nan-p num)
-                                (return :nan)
+                                (return +nan+)
                                 (setf sum (xnum-+ sum num))))))
       sum)))
 
@@ -191,9 +191,9 @@
 
 (define-xpath-function/eager xpath :substring (string start &optional (len nil len-p))
   (let* ((string (string-value string))
-         (start (xnum-round (number-value start)))
+         (start (round-to-integer (number-value start)))
          (end (if len-p
-                  (xnum-+ start (xnum-round (number-value len)))
+                  (round-to-integer (xnum-+ start (number-value len)))
                   (1+ (length string)))))
     (if (or (nan-p start)
             (nan-p end)

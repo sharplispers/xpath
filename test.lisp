@@ -51,7 +51,9 @@
 
 (defmacro deftest (name &body body)
   `(progn
-     (defun ,name () ,@body)
+     (defun ,name ()
+       (with-float-traps-masked ()
+         ,@body))
      (pushnew ',name *tests*)))
 
 (defun run-all-tests ()

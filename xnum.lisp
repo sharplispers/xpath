@@ -31,6 +31,11 @@
 
 ;; mock IEEE 754 support (to become proper IEEE 754 emulation module someday)
 
+(defmacro with-float-traps-masked ((&optional) &body body)
+  `(progn ,@body))
+
+(defvar +nan+ :nan)
+
 (deftype xnum () '(or number (member :nan :inf :-inf)))
 
 (defun xnum-p (value)
@@ -103,6 +108,10 @@
   (cond ((or (nan-p a) (nan-p b) (inf-p a) (x-zerop b)) :nan)
         ((inf-p b) a)
         (t (rem a b))))
+
+;; Round to an integer, not a float.  But pass NaN and infinity through.
+(defun round-to-integer (a)
+  (xnum-round a))
 
 (defun xnum-round (a)
   (if (or (nan-p a) (inf-p a))

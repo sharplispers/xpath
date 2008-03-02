@@ -177,8 +177,9 @@
   ;; FIXME: Should this perhaps compute position and size based on
   ;; the node's siblings instead?
   (let ((value
-         (funcall compiled-xpath
-                  (if (typep context 'context) context (make-context context)))))
+         (with-float-traps-masked ()
+           (funcall compiled-xpath
+                    (if (typep context 'context) context (make-context context))))))
     (if (and (not unordered-p)
              (node-set-p value))
         (sort-node-set value)
