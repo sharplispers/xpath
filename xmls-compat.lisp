@@ -316,10 +316,10 @@
     ((navi xpath-navigator) (node string))
   nil)
 
-(defmethod xpath-protocol:get-element-by-id
+(defmethod xpath-protocol:get-element-by-id-using-navigator
     ((navi xpath-navigator) (node t) (id t))
   nil)
 
-(defmethod xpath-protocol:unparsed-entity-uri
+(defmethod xpath-protocol:unparsed-entity-uri-using-navigator
     ((navi xpath-navigator) (node t) (name t))
   nil)
