@@ -82,12 +82,16 @@
 	</xsl:attribute>
       </xsl:if>
       <div class="sidebar-title">
-	<a href="index.html">Xuriella XSLT</a>
+	<a href="index.html">
+	  <xsl:value-of select="/page/@title"/>
+	</a>
       </div>
       <div class="sidebar-main">
 	<ul class="main">
 	  <li>
-	    <a href="installation.html">Installing Xuriella</a>
+	    <a href="installation.html">
+	      Installing <xsl:value-of select="/page/@title"/>
+	    </a>
 	    <ul class="sub">
 	      <li><a href="installation.html#download">Download</a></li>
 	      <li><a href="installation.html#compilation">Installation</a></li>
