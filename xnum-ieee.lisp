@@ -160,6 +160,10 @@
      (if (plusp xnum)
 	 "Infinity"
 	 "-Infinity"))
+    ((eql xnum -0.0d0)
+     ;; Insane: We have to go through a lot of trouble to get -0 right, but
+     ;; then we're supposed to *print* it as 0 after all.
+     "0")
     (t (cl-ppcre:regex-replace "\\.?0*$" (string-replace (format nil "~f" xnum) "d" "e") ""))))
 
 (defmacro assert-float-equal (expected actual)
