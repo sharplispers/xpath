@@ -82,15 +82,15 @@
   (error "implement me"))
 
 (defun xnum-* (a b)
-  (* a b))
+  (* (float a 1.0d0) (float b 1.0d0)))
 
 (defun xnum-+ (a b)
-  (+ a b))
+  (+ (float a 1.0d0) (float b 1.0d0)))
 
 (defun xnum-- (a &optional b)
   (if b
-      (- a b)
-      (- a)))
+      (- (float a 1.0d0) (float b 1.0d0))
+      (- (float a 1.0d0))))
 
 #+sbcl
 (sb-alien:define-alien-routine "fmod" double-float
@@ -137,7 +137,9 @@
   (cond ((position #\e str) (string-replace str "e" "d"))
         ((position #\d str) str)
         ((string= str ".") "")
-        ((position #\. str) (concat str "d0"))
+        ((or (position #\. str)
+             (and (plusp (length str)) (char= (elt str 0) #\-)))
+         (concat str "d0"))
         (t str)))
 
 (defun parse-xnum (str)
