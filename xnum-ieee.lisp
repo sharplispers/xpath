@@ -152,6 +152,7 @@
       +nan+)))
 
 (defun xnum->string (xnum)
+  (setf xnum (float xnum 1.0d0))
   ;; FIXME: this is not quite correct
   (cond
     ((nan-p xnum) "NaN")
