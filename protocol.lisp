@@ -173,7 +173,7 @@
 (define-default-method xpath-protocol:namespace-prefix ((node dom-namespace))
   nil)
 (define-default-method xpath-protocol:namespace-uri ((node dom-namespace))
-  (dom-namespace-uri node))
+  "")
 
 (define-default-method xpath-protocol:namespace-pipe ((node dom:element))
   ;; FIXME: completely untested
