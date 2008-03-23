@@ -76,15 +76,29 @@
 ;;;   - FIXME: Whitespace is currently allowed before and after -every- rule.
 ;;;     Is this correct?
 ;;;
-(defmacro deflexer (name &body rules)
-  (let ((regex-stream (make-string-output-stream)))
+(defmacro deflexer (name-and-options &body rules)
+  (let ((regex-stream (make-string-output-stream))
+        (name (if (listp name-and-options)
+                  (car name-and-options)
+                  name-and-options))
+        (ignore-whitespace
+         (if (listp name-and-options)
+             (destructuring-bind (&key (ignore-whitespace t))
+                 (cdr name-and-options)
+               ignore-whitespace)
+             t)))
     (format regex-stream "^(?:")
     (loop
        for counter from 0
        for (subregex args . body) in rules do
          (unless (zerop counter)
            (write-char #\| regex-stream))
-         (format regex-stream "(?<g~D>\\s*~A\\s*)" counter subregex))
+         (format regex-stream
+                 (if ignore-whitespace
+                     "(?<g~D>\\s*~A\\s*)"
+                     "(?<g~D>~A)")
+                 counter
+                 subregex))
     (format regex-stream ")")
     `(let ((actions
             (vector
