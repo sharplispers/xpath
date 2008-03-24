@@ -35,6 +35,8 @@
            #:attribute-pipe
            #:namespace-pipe
            #:node-p
+           #:node-equal
+           #:hash-key
            #:parent-node
            #:local-name
            #:qualified-name
@@ -53,6 +55,8 @@
            #:attribute-pipe-using-navigator
            #:namespace-pipe-using-navigator
            #:node-p-using-navigator
+           #:hash-key-using-navigator
+           #:node-equal-using-navigator
            #:parent-node-using-navigator
            #:local-name-using-navigator
            #:qualified-name-using-navigator

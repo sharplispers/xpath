@@ -81,12 +81,13 @@
    @arg[ordering]{one of :document-order, :reverse-document-order, :unordered}
    @return{a node set}
    Makes a node set containing nodes from the @code{pipe} with specified @code{ordering}."
-  (let ((visited (make-hash-table)))
+  (let ((visited (make-hash-table :test 'equal)))
     (make-instance 'node-set
                    :pipe (filter-pipe
                           #'(lambda (item)
-                              (unless (gethash item visited)
-                                (setf (gethash item visited) t)))
+                              (let ((key (xpath-protocol:hash-key item)))
+                                (unless (gethash key visited)
+                                  (setf (gethash key visited) t))))
                           pipe)
                    :ordering ordering)))
 
@@ -136,10 +137,10 @@
          (pp (last pp n))
          (qq (last qq n)))
     (cond
-      ((eq b (car pp))
+      ((xpath-protocol:node-equal b (car pp))
        ;; same node, or b is an ancestor of a
        nil)
-      ((eq a (car qq))
+      ((xpath-protocol:node-equal a (car qq))
        ;; a is an ancestor of b
        t)
       (t
@@ -148,7 +149,7 @@
        (loop
           for (p nextp) on pp
           for (q nextq) on qq
-          if (eq nextp nextq)
+          if (xpath-protocol:node-equal nextp nextq)
           do (return
                (let ((pa? (xpath-protocol:node-type-p p :attribute))
                      (qa? (xpath-protocol:node-type-p q :attribute))
@@ -167,9 +168,9 @@
                    ((and pa? qa?)
                     (enumerate (funcall (axis-function :attribute) nextp)
                                :key (lambda (x)
-                                      (when (eq x p)
+                                      (when (xpath-protocol:node-equal x p)
                                         (return t))
-                                      (when (eq x q)
+                                      (when (xpath-protocol:node-equal x q)
                                         (return nil)))
                                :result :error))
                    ;; namespaces and attributes both come before children:
@@ -182,7 +183,7 @@
                     (enumerate
                      (funcall (axis-function :following-sibling) p)
                      :key (lambda (after-p)
-                            (when (eq after-p q)
+                            (when (xpath-protocol:node-equal after-p q)
                               (return t)))
                      :result nil)))))
           finally

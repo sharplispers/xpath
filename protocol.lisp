@@ -45,6 +45,15 @@
                   (defun ,name (node ,@extra-args)
                     (,navi-name *navigator* node ,@extra-args))))))
   (defprotocol xpath-protocol:node-p)
+  ;; NODE-EQUAL and NODE-IDENTITY need to be implemented so that the
+  ;; following equavalence holds (but NODE-EQUAL might be implemented
+  ;; directly instead):
+  ;;   (node-equal a b) <=> (equal (hash-key a) (hash-key b))
+  ;; (This is unlike Java's equals() and hashCode(), because HASH-KEY
+  ;; doesn't return a hash code, it returns an object to be used in an
+  ;; EQUAL hash table.)
+  (defprotocol xpath-protocol:node-equal other)
+  (defprotocol xpath-protocol:hash-key)
   (defprotocol xpath-protocol:child-pipe)
   (defprotocol xpath-protocol:attribute-pipe)
   (defprotocol xpath-protocol:namespace-pipe)
@@ -70,6 +79,12 @@
 
 (define-default-method xpath-protocol:node-p ((node t))
   nil)
+
+(define-default-method xpath-protocol:node-equal (a b)
+  (eq a b))
+
+(define-default-method xpath-protocol:hash-key (node)
+  node)
 
 
 ;; helper functions
@@ -153,6 +168,15 @@
 
 (define-default-method xpath-protocol:node-p ((node dom-namespace))
   t)
+
+(define-default-method xpath-protocol:node-equal
+    ((a dom-namespace) (b dom-namespace))
+  (and (eq (dom-namespace-parent a) (dom-namespace-parent b))
+       (equal (dom-namespace-prefix a) (dom-namespace-prefix b))))
+
+(define-default-method xpath-protocol:hash-key
+    ((node dom-namespace))
+  (cons (dom-namespace-parent node) (dom-namespace-prefix node)))
 
 (define-default-method xpath-protocol:child-pipe
     ((node dom-namespace))
