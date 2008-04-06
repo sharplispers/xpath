@@ -145,9 +145,46 @@
            #:*allow-variables-in-patterns*)
   (:documentation
    "Plexippus XPath is an XPath implementation for Common Lisp.
+
     TBD: document here:
     environments/variables, XPath sexpr-based syntax, representation of XPath
-    types (incl. xnums), extensions, samples"))
+    types (incl. xnums), extensions, samples
+
+    @begin[Using XPath]{section}
+      TBD
+    @end{section}
+    @begin[Compiling XPath dynamically]{section}
+      TBD
+    @end{section}
+    @begin[The dynamic environment]{section}
+      TBD
+    @end{section}
+    @begin[Using pattern matchers]{section}
+    @aboutfun{node-matches-p}
+    @aboutmacro{pattern-case}
+    @aboutmacro{pattern-ecase}
+    @end{section}
+    @begin[Compiling pattern matchers dynamically]{section}
+    Pattern are represented as objects:
+
+    @aboutclass{pattern}
+    @aboutfun{pattern-value}
+    @aboutfun{pattern-priority}
+    Use @code{compute-patterns} to parse a pattern expression into
+    pattern objects:
+
+    @aboutfun{compute-patterns}
+    @code{make-pattern-matcher} builds a matcher functions from multiple
+    pattern objects.  The matcher will find the highest-priority match
+    among them.
+
+    @aboutfun{make-pattern-matcher}
+    @aboutfun{make-pattern-matcher*}
+    To invoke a matcher, use @code{matching-value} or @code{matching-values}:
+
+    @aboutfun{matching-value}
+    @aboutfun{matching-values}
+    @end{section}"))
 
 (defpackage :xpath-sys
   (:import-from :xpath-protocol

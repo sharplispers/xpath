@@ -36,7 +36,8 @@
   "If set to T, predicates in patterns are permitted to reference variables
    using $var syntax.  If set to NIL, such variable references signal a
    compilation-time error.  The default is T.  Bind this variable to NIL to
-   enable compatibility with XSLT 1.0.")
+   enable compatibility with XSLT 1.0.
+   @see{compute-patterns}")
 
 (defstruct (pattern
              (:constructor %make-pattern (key thunk priority value)))
@@ -45,11 +46,75 @@
   key
   thunk)
 
+(setf (documentation 'pattern 'type)
+      "Represents a parsed XSLT pattern.
+       @see-constructor{compute-patterns}
+       @see-slot{pattern-value}
+       @see-slot{pattern-priority}
+       @see{make-pattern-matcher}")
+
+(setf (documentation 'pattern-value 'function)
+      "@arg[instance]{a @class{pattern}}
+       @return{an object}
+       Return the user-specified value that will be returned by pattern
+       matchers if this pattern matches.
+       @see{matching-value}
+       @see{matching-values}")
+
+(setf (documentation 'pattern-priority 'function)
+      "@arg[instance]{a @class{pattern}}
+       @return{an integer}
+       @short{Return the priority of this pattern.}
+       When several patters would match the same node, the pattern matcher
+       will only consider the patterns that have the highest priority.
+       @see{matching-value}
+       @see{matching-values}")
+
 (defun matching-values (matcher node)
+  "@arg[matcher]{a pattern matching function}
+   @arg[node]{any node implementing the XPath protocol}
+   @return{an object}
+   @short{Apply a pattern matcher to node, and return one or more matching
+   values.}
+
+   For use with @code{matcher} functions that have been returned by
+   @fun{make-pattern-matcher} or a higher-level function like
+   @fun{make-pattern-matcher*}.
+
+   The resulting list will contain the user-specified values as
+   returned by @fun{pattern-value} on the patterns for this matcher, in
+   any order.   Duplicates under @code{eql} will have been removed from
+   the list.
+
+   @see{node-matches-p}
+   @see{pattern-case}
+   @see{pattern-ecase}"
   (with-float-traps-masked ()
     (funcall matcher node)))
 
 (defun matching-value (matcher node &optional (default nil))
+  "@arg[matcher]{a pattern matching function}
+   @arg[node]{any node implementing the XPath protocol}
+   @arg[default]{an object}
+   @return{an object}
+   @short{Apply a pattern matcher to node, and return exactly one value.}
+
+   For use with @code{matcher} functions that have been returned by
+   @fun{make-pattern-matcher} or a higher-level function like
+   @fun{make-pattern-matcher*}.
+
+   If exactly one pattern matches, or several patterns for the same value
+   match, the user-specified values as determined by @fun{pattern-value}
+   will be returned by this function.
+
+   If no pattern matches, @code{default} will be returned instead.
+
+   If more than one pattern of highest priority and different values
+   match, an @code{xpath-error} will be signalled.
+
+   @see{node-matches-p}
+   @see{pattern-case}
+   @see{pattern-ecase}"
   (let ((matching-values (matching-values matcher node)))
     (cond
       ((null matching-values)
@@ -60,6 +125,9 @@
        (xpath-error "conflicting patterns")))))
 
 (defun parse-pattern-expression (str)
+  "@arg[str]{a string}
+   @return{a s-expression-based pattern expression}
+   Parses an XSLT pattern into an s-expression."
   (let ((form (parse-xpath str)))
     (unless (consp form)
       (xpath-error "not a valid pattern: ~A" str))
@@ -81,9 +149,34 @@
       (cons :patterns (process-form form)))))
 
 (defun make-pattern-matcher* (expression environment)
+  "@arg[expression]{a string or s-expression}
+   @arg[environment]{an @code{environment}}
+   @return{the pattern matcher, a function}
+   @short{Create a pattern matcher for a single pattern.}
+
+   This function is a convenience wrapper around @fun{compute-patterns}
+   and @fun{make-pattern-matcher}.
+
+   The resulting matcher will return T if the specified @code{expression}
+   matches, or NIL if it doesn't.
+
+   @see{compute-patterns}
+   @see{matching-value}
+   @see{matching-values}"
   (make-pattern-matcher (compute-patterns expression 42 t environment)))
 
 (defun make-pattern-matcher (patterns)
+  "@arg[patterns]{a list of @class{pattern}s}
+   @return{the pattern matcher, a function}
+   @short{Create a pattern matcher that distinguishes between
+     multiple patterns.}
+
+   This function combines several patterns, and creates a matcher function
+   for use with @fun{matching-value} or @fun{matching-values}.
+   The matcher function will compare a node against each pattern, and
+   find the highest-priority pattern or patterns that match the node.
+
+   @see{compute-patterns}"
   (let ((name-patterns (make-hash-table :test 'equal))
         (namespace-patterns (make-hash-table :test 'equal))
         (type-patterns (make-hash-table))
@@ -132,7 +225,44 @@
             (mapc #'process-spec other-patterns)))
         results))))
 
+(defun compute-patterns (expression priority value environment)
+  "@arg[expression]{a string or s-expression}
+   @arg[priority]{an integer}
+   @arg[value]{an object}
+   @arg[environment]{an @code{environment}}
+   @return{a list of @class{pattern}s}
+   @short{Parse an XSLT pattern expression into one or more pattern objects.}
+
+   Parses an expression, resolves its namespace-, variable-, and
+   function-references using the specified @code{environment}, and creates
+   a @class{pattern} object for the expression (if it does not use a union)
+   or one @class{pattern} object for each sub-expression that is being
+   joined into the union.
+
+   The specified @code{priority} is used as the @fun{pattern-priority},
+   and the specified @code{value} is used as the @fun{pattern-value}.
+
+   @see{make-pattern-matcher*}
+   @see{make-pattern-matcher}"
+  (multiple-value-bind (keys thunks)
+      (compile-pattern-expression expression environment)
+    (mapcar (lambda (key thunk)
+              (%make-pattern key thunk priority value))
+            keys
+            thunks)))
+
 (defun node-matches-p (node pattern-expression)
+  "@arg[node]{any node implementing the XPath protocol}
+   @arg[pattern-expression]{a string or s-expression}
+   @return{a boolean}
+   @short{Determine whether @code{node} matches the pattern expression.}
+
+   The expression is compiled using the dynamic environment.
+
+   @see{with-namespaces}
+   @see{with-variables}
+   @see{pattern-case}
+   @see{pattern-ecase}"
   (matching-value
    (if (functionp pattern-expression)
        pattern-expression
@@ -150,11 +280,46 @@
       ,node)))
 
 (defmacro pattern-ecase (node &rest clauses)
+  "@arg[node]{any node implementing the XPath protocol}
+   @arg[clauses]{cases of the form (expression &rest body)}
+   @return{The value returned by the matching clause body.}
+   @short{Match a node against static expressions.}
+
+   Evaluates @code{node}, and matches them against the specified XSLT
+   patterns. The first matching pattern will be chosen, i.e. earlier
+   clauses have higher priority that later clauses.
+
+   Expressions are compiled using the dynamic environment.
+
+   If no clause matches, an error will be signalled.
+
+   @see{with-namespaces}
+   @see{pattern-case}
+   @see{node-matches-p}
+   @see{with-variables}"
   `(pattern-case ,node
      ,@clauses
      (t (error "pattern-ecase fell through"))))
 
 (defmacro pattern-case (node &body clauses)
+  "@arg[node]{any node implementing the XPath protocol}
+   @arg[clauses]{cases of the form (expression &rest body)}
+   @return{The value returned by the matching clause body, or nil.}
+   @short{Match a node against static expressions.}
+
+   Evaluates @code{node}, and matches them against the specified XSLT
+   patterns. The first matching pattern will be chosen, i.e. earlier
+   clauses have higher priority that later clauses.
+
+   Expressions are compiled using the dynamic environment.
+
+   As a special case, the last expression can be @code{t}, in which case
+   it matches unconditionally.
+
+   @see{with-namespaces}
+   @see{pattern-ecase}
+   @see{node-matches-p}
+   @see{with-variables}"
   (let* ((otherwise-body nil)
          (patterns
           (loop
@@ -196,14 +361,6 @@
      *allow-variables-in-patterns*)
     (t
      (every #'valid-expression-p (cdr expr)))))
-
-(defun compute-patterns (expression priority value environment)
-  (multiple-value-bind (keys thunks)
-      (compile-pattern-expression expression environment)
-    (mapcar (lambda (key thunk)
-              (%make-pattern key thunk priority value))
-            keys
-            thunks)))
 
 (defun compile-pattern-expression (pattern environment)
   (unless (typep pattern 'pattern-expr)
