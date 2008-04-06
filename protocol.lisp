@@ -287,7 +287,8 @@
   (deftypemapping dom:text :text)
   (deftypemapping dom:attr :attribute)
   (deftypemapping dom:element :element)
-  (deftypemapping dom-namespace :namespace))
+  (deftypemapping dom-namespace :namespace)
+  (deftypemapping dom:document :document))
 
 (define-default-method xpath-protocol:get-element-by-id ((node dom:node) id)
   (dom:get-element-by-id

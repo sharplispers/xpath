@@ -30,4 +30,5 @@
                  (:file "api")
                  (:file "plx")
                  (:file "xmls-compat")
+                 (:file "patterns")
                  (:file "xpath-test")))

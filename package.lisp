@@ -128,7 +128,21 @@
 
            #:*navigator*
 
-           #:xpath-error)
+           #:xpath-error
+
+           #:pattern
+           #:pattern-value
+           #:pattern-priority
+           #:matching-values
+           #:matching-value
+           #:parse-pattern-expression
+           #:make-pattern-matcher*
+           #:make-pattern-matcher
+           #:compute-patterns
+           #:node-matches-p
+           #:pattern-case
+           #:pattern-ecase
+           #:*allow-variables-in-patterns*)
   (:documentation
    "Plexippus XPath is an XPath implementation for Common Lisp.
     TBD: document here:

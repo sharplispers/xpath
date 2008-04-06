@@ -81,6 +81,30 @@
   <b>x</b>
 </main>")
 
+(defparameter *sample-xml-4*
+  (concat
+   "<?xml version='1.0'?>"
+   "<doc>"
+   "  <a>"
+   "    <b><c/></b>"
+   "    <b><c><d><e/></d></c></b>"
+   "    <e><c/></e>"
+   "    <e><b><c/></b></e>"
+   "    <e><c><d/></c></e>"
+   "  </a>"
+   "<A level='1'>"
+   "  <X level='2'>"
+   "     <B level='3'>"
+   "        <X level='4'>"
+   "          <C level='5'>"
+   "            <X level='6'/>"
+   "          </C>"
+   "        </X>"
+   "     </B>"
+   "  </X>"
+   "</A>"
+   "</doc>"))
+
 (defparameter *dom-builder* (cxml-dom:make-dom-builder))
 (defparameter *document-element* #'dom:document-element)
 
@@ -88,7 +112,8 @@
   `(deftest ,name
      (let ((*sample-xml* (cxml:parse-rod *sample-xml* *dom-builder*))
            (*sample-xml-2* (cxml:parse-rod *sample-xml-2* *dom-builder*))
-           (*sample-xml-3* (cxml:parse-rod *sample-xml-3* *dom-builder*)))
+           (*sample-xml-3* (cxml:parse-rod *sample-xml-3* *dom-builder*))
+           (*sample-xml-4* (cxml:parse-rod *sample-xml-4* *dom-builder*)))
        ,@body)))
 
 (defun join-xpath-result (result)
@@ -527,6 +552,50 @@
       "plx:generate-id(//span[2]) != plx:generate-id(//span[@class='sample'])"
       "plx:generate-id(//span[2]) != plx:generate-id(/)"
       "plx:generate-id() = plx:generate-id(/)"))))
+
+(define-xpath-test test-pattern-case
+  (flet ((check (expected-value expression)
+           (let* ((node (first-node (evaluate expression *sample-xml*)))
+                  (actual-value
+                   (pattern-case node
+                     ("div" :div)
+                     ("span[@class='another']" :another)
+                     ("*" :element)
+                     (t :otherwise))))
+             (unless (eql expected-value actual-value)
+               (error "expected ~A but got ~A for ~A"
+                      expected-value
+                      actual-value
+                      expression)))))
+    (check :div "//div")
+    (check :element "//span")
+    (check :another "(//span)[4]")
+    (check :otherwise "//span/@class")))
+
+(define-xpath-test test-node-matches-p
+  (flet ((check (expected match select &optional (document *sample-xml*))
+           (let* ((node (first-node (evaluate select document)))
+                  (actual (node-matches-p node match)))
+             (unless (eql expected actual)
+               (error "expected ~A but got ~A for ~A on ~A"
+                      expected
+                      actual
+                      match
+                      node)))))
+    (check t "div" "//div")
+    (check t "//div" "//div")
+    (check t "*" "//span")
+    (check t "span[@class='another']" "(//span)[4]")
+    (check t "@*" "//span/@class")
+    (check t "a//c" "/doc/a/e/b/c" *sample-xml-4*)
+    (check t "//a//c" "/doc/a/e/b/c" *sample-xml-4*)
+    (check t "B//X" "/doc/A/X/B/X/C/X" *sample-xml-4*)
+    (check t "B//X" "/doc/A/X/B/X" *sample-xml-4*)
+    (check t "X//X" "/doc/A/X/B/X" *sample-xml-4*)
+    (check nil "B//B" "/doc/A/X/B" *sample-xml-4*)
+    (check nil "span[@class='another']" "//span")
+    (check nil "div" "//span")
+    (check nil "*" "//span/@class")))
 
 (deftest test-xmls
   (let ((*navigator* (cxml-xmls:make-xpath-navigator))

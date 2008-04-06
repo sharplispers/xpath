@@ -88,3 +88,37 @@ Otherwise return the first form or NIL if the body is empty"
   (intern
    (with-standard-io-syntax
      (format nil "~{~a~^-~}" parts))))
+
+;; Cache the result of COMPILATION-BODY as long as KEYS still match.
+;; This is thread-safe because the cache is replaced atomically.  We will
+;; lose cache conses if threads replace them simultaneously.  But that's
+;; okay, since correctness is not affected.  Losing some values is easier
+;; than having to use locking, and contention is not a case we are
+;; optimizing for.
+;;
+;; zzz extend this to use a vector of multiple cache-conses, using either
+;; linear search with round-robin replacement, or using SXHASH-based
+;; hashing.  Make the size of that table static, but configurable.
+(defmacro with-cache ((&rest keys) &body compilation-body)
+  (let* ((keysyms (loop repeat (length keys) collect (gensym)))
+         (place (gensym))
+         (previous (gensym))
+         (check
+          (when keysyms
+            `((let ((l (cdr ,PREVIOUS)))
+                , (labels ((recurse (vars)
+                             `(and (equal (car l) ,(car vars))
+                                   ,@ (when (cdr vars)
+                                        `((let ((l (cdr l)))
+                                            ,(recurse (cdr vars))))))))
+                    (recurse keysyms)))))))
+    `(let* ((,PLACE (load-time-value (cons nil nil)))
+            (,PREVIOUS (car ,PLACE))
+            ,@(mapcar #'list keysyms keys))
+       (cond
+         ((and ,PREVIOUS ,@check)
+          (car ,PREVIOUS))
+         (t
+          (let ((thunk (progn ,@compilation-body)))
+            (setf (car ,PLACE) (list thunk ,@keysyms))
+            thunk))))))
