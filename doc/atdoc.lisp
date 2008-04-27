@@ -8,4 +8,4 @@
    atdoc-directory
    :index-title "Plexippus XPath API reference"
    :heading "Plexippus XPath"
-   :css (merge-pathnames "doc/index.css" base)))
+   :css (merge-pathnames "doc/atdoc.css" base)))
