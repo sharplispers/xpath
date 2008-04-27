@@ -466,10 +466,10 @@
     (assert-equal* 0 (xpath:evaluate "count(html/following::text())"
                                      (cxml:parse-rod "<html></html>"
                                                      *dom-builder*))
-                   11 (xpath:evaluate "count(//following::div) * 10 + count(//div|body/div)"
-                                     (cxml:parse-rod
-                                      "<html><body><span></span><br/><div></div></body></html>"
-                                      *dom-builder*)))))
+                   11.0d0 (xpath:evaluate "count(//following::div) * 10 + count(//div|body/div)"
+                                          (cxml:parse-rod
+                                           "<html><body><span></span><br/><div></div></body></html>"
+                                           *dom-builder*)))))
 
 (define-xpath-test test-filtering
   (with-namespaces (("" ""))
