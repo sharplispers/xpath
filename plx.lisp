@@ -34,7 +34,7 @@
 (defparameter *plx-uri* "http://common-lisp.net/project/plexippus-xpath/plx")
 
 (defmacro with-plx-extensions (&body body)
-  "Binds plx prefix to Plexippus XPath extensions namespace.
+  "@short{Binds plx prefix to Plexippus XPath extensions namespace.}
 
    The following functions are currently available:
 

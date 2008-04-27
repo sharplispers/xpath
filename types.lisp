@@ -438,7 +438,9 @@
      @short{Generates an unique identifier for the first node @code{node-set}
      (or, if a node is specified, for that node).}
 
-     This function is analagous to generate-id() XSLT function."
+     This function is similar to the generate-id() XSLT function, but its
+     results are unique only within its document, whereas XSLT also prepends
+     an ID designating the document."
     (cond ((not (node-set-p node-or-node-set))
            (concat
             (if (xpath-protocol:parent-node node-or-node-set)
