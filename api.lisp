@@ -213,23 +213,17 @@
    it will be sorted using @fun{sort-node-set} so its nodes will be in document
    order. If @code{unordered-p} is true, the order of the nodes is unspecified.
    Unordered mode can be significantly faster in some cases (and never slower)."
-  (with-gensyms (cache)
-    (once-only (xpath)
-      `(evaluate-compiled
-        (let ((,cache (load-time-value (cons nil nil))))
-          (cond ((functionp ,xpath)
-                 ,xpath)
-                ((same-expr-p (car ,cache) ,xpath *dynamic-namespaces*)
-                 (cdr ,cache))
-                (t
-                 (setf (car ,cache) nil) ;; try to avoid race conditions
-                 (prog1
-                   (setf (cdr ,cache)
-                         (compile-xpath ,xpath
-                                        (make-dynamic-environment *dynamic-namespaces*)))
-                   (setf (car ,cache) (cons ,xpath *dynamic-namespaces*))))))
-        ,context
-        ,unordered-p))))
+  (once-only (xpath)
+    `(evaluate-compiled
+      (if (functionp ,xpath)
+          ,xpath
+          (with-cache ((,xpath :test equal)
+                       (*dynamic-namespaces* :test namespaces-match-p))
+            (compile-xpath ,xpath
+                           (make-dynamic-environment
+                            *dynamic-namespaces*))))
+      ,context
+      ,unordered-p)))
 
 ;; errors
 
