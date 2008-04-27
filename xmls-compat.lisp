@@ -35,6 +35,7 @@
   value)
 
 (defstruct xmls-namespace
+  parent
   uri)
 
 
@@ -55,6 +56,22 @@
 (defmethod xpath-protocol:node-p-using-navigator
     ((navi xpath-navigator) (node xmls-namespace))
   t)
+
+(defmethod xpath-protocol:node-equal-using-navigator
+    ((navi xpath-navigator) (a t) (b t))
+  nil)
+
+(defmethod xpath-protocol:node-equal-using-navigator
+    ((navi xpath-navigator) (a cons) (b cons))
+  (eq a b))
+
+(defmethod xpath-protocol:node-equal-using-navigator
+    ((navi xpath-navigator) (a string) (b string))
+  (equal a b))
+
+(defmethod xpath-protocol:hash-key-using-navigator
+    ((navi xpath-navigator) node)
+  node)
 
 (defun strip-prefix (car)
   (let ((pos (position #\: car)))
@@ -173,7 +190,8 @@
           (result '()))
       (labels ((record* (parent uri)
                  (unless (gethash uri table)
-                   (let ((struct (make-xmls-namespace :uri uri)))
+                   (let ((struct
+                          (make-xmls-namespace :parent parent :uri uri)))
                      (setf (gethash struct parents) parent)
                      (setf (gethash uri table) struct))))
                (record (parent node)
@@ -323,3 +341,12 @@
 (defmethod xpath-protocol:unparsed-entity-uri-using-navigator
     ((navi xpath-navigator) (node t) (name t))
   nil)
+
+(defmethod xpath-protocol:node-equal-using-navigator
+    ((navi xpath-navigator) (a xmls-namespace) (b xmls-namespace))
+  (and (eq (xmls-namespace-parent a) (xmls-namespace-parent b))
+       (equal (xmls-namespace-uri a) (xmls-namespace-uri b))))
+
+(defmethod xpath-protocol:hash-key-using-navigator
+    ((navi xpath-navigator) (node xmls-namespace))
+  (cons (xmls-namespace-parent node) (xmls-namespace-uri node)))
