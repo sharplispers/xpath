@@ -198,7 +198,7 @@
      do (return nil)
      finally (return t)))
 
-(defmacro evaluate (xpath context &optional unordered-p)
+(defun evaluate (xpath context &optional unordered-p)
   "@arg[xpath]{an XPath expression}
    @arg[context]{an XPath context}
    @arg[unordered-p]{specify true to get unordered node-set}
@@ -213,6 +213,14 @@
    it will be sorted using @fun{sort-node-set} so its nodes will be in document
    order. If @code{unordered-p} is true, the order of the nodes is unspecified.
    Unordered mode can be significantly faster in some cases (and never slower)."
+  (evaluate-compiled
+   (if (functionp xpath)
+       xpath
+       (compile-xpath xpath (make-dynamic-environment *dynamic-namespaces*)))
+   context
+   unordered-p))
+
+(define-compiler-macro evaluate (xpath context &optional unordered-p)
   (once-only (xpath)
     `(evaluate-compiled
       (if (functionp ,xpath)
