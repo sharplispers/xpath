@@ -72,8 +72,53 @@
    "XPATH-PROTOCOL package contains generic functions that are used to support
     multiple representations of XML documents for XPath."))
 
+(defpackage :xpattern
+  (:use)
+  (:export #:pattern
+           #:pattern-value
+           #:pattern-priority
+           #:matching-values
+           #:matching-value
+           #:parse-pattern-expression
+           #:make-pattern-matcher*
+           #:make-pattern-matcher
+           #:compute-patterns
+           #:node-matches-p
+           #:pattern-case
+           #:pattern-ecase
+           #:*allow-variables-in-patterns*)
+  (:documentation
+   "The XPATTERN package implements pattern matching compatible with XSLT 1.0.
+
+    @begin[Using pattern matchers]{section}
+    @aboutfun{node-matches-p}
+    @aboutmacro{pattern-case}
+    @aboutmacro{pattern-ecase}
+    @end{section}
+    @begin[Compiling pattern matchers dynamically]{section}
+    Pattern are represented as objects:
+
+    @aboutclass{pattern}
+    @aboutfun{pattern-value}
+    @aboutfun{pattern-priority}
+    Use @code{compute-patterns} to parse a pattern expression into
+    pattern objects:
+
+    @aboutfun{compute-patterns}
+    @code{make-pattern-matcher} builds a matcher functions from multiple
+    pattern objects.  The matcher will find the highest-priority match
+    among them.
+
+    @aboutfun{make-pattern-matcher}
+    @aboutfun{make-pattern-matcher*}
+    To invoke a matcher, use @code{matching-value} or @code{matching-values}:
+
+    @aboutfun{matching-value}
+    @aboutfun{matching-values}
+    @end{section}"))
+
 (defpackage :xpath
-  (:use cl)
+  (:use cl :xpattern)
   (:import-from :xpath-protocol #:define-default-method)
   (:intern #:make-node-set
            #:make-pipe
@@ -128,21 +173,7 @@
 
            #:*navigator*
 
-           #:xpath-error
-
-           #:pattern
-           #:pattern-value
-           #:pattern-priority
-           #:matching-values
-           #:matching-value
-           #:parse-pattern-expression
-           #:make-pattern-matcher*
-           #:make-pattern-matcher
-           #:compute-patterns
-           #:node-matches-p
-           #:pattern-case
-           #:pattern-ecase
-           #:*allow-variables-in-patterns*)
+           #:xpath-error)
   (:documentation
    "Plexippus XPath is an XPath implementation for Common Lisp.
 
@@ -158,33 +189,7 @@
     @end{section}
     @begin[The dynamic environment]{section}
       TBD
-    @end{section}
-    @begin[Using pattern matchers]{section}
-    @aboutfun{node-matches-p}
-    @aboutmacro{pattern-case}
-    @aboutmacro{pattern-ecase}
-    @end{section}
-    @begin[Compiling pattern matchers dynamically]{section}
-    Pattern are represented as objects:
-
-    @aboutclass{pattern}
-    @aboutfun{pattern-value}
-    @aboutfun{pattern-priority}
-    Use @code{compute-patterns} to parse a pattern expression into
-    pattern objects:
-
-    @aboutfun{compute-patterns}
-    @code{make-pattern-matcher} builds a matcher functions from multiple
-    pattern objects.  The matcher will find the highest-priority match
-    among them.
-
-    @aboutfun{make-pattern-matcher}
-    @aboutfun{make-pattern-matcher*}
-    To invoke a matcher, use @code{matching-value} or @code{matching-values}:
-
-    @aboutfun{matching-value}
-    @aboutfun{matching-values}
-    @end{section}"))
+    @end{section} "))
 
 (defpackage :xpath-sys
   (:import-from :xpath-protocol

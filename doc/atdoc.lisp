@@ -4,7 +4,7 @@
        (atdoc-directory (merge-pathnames "doc/atdoc/" base)))
   (ensure-directories-exist atdoc-directory)
   (atdoc:generate-documentation
-   '(:xpath :xpath-sys)
+   '(:xpath :xpath-sys :xpattern)
    atdoc-directory
    :index-title "Plexippus XPath API reference"
    :heading "Plexippus XPath"
