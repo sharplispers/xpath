@@ -100,25 +100,34 @@ Otherwise return the first form or NIL if the body is empty"
 ;; linear search with round-robin replacement, or using SXHASH-based
 ;; hashing.  Make the size of that table static, but configurable.
 (defmacro with-cache ((&rest keys) &body compilation-body)
-  (let* ((keysyms (loop repeat (length keys) collect (gensym)))
-         (place (gensym))
-         (previous (gensym))
-         (check
-          (when keysyms
-            `((let ((l (cdr ,PREVIOUS)))
-                , (labels ((recurse (vars)
-                             `(and (equal (car l) ,(car vars))
-                                   ,@ (when (cdr vars)
-                                        `((let ((l (cdr l)))
-                                            ,(recurse (cdr vars))))))))
-                    (recurse keysyms)))))))
-    `(let* ((,PLACE (load-time-value (cons nil nil)))
-            (,PREVIOUS (car ,PLACE))
-            ,@(mapcar #'list keysyms keys))
-       (cond
-         ((and ,PREVIOUS ,@check)
-          (car ,PREVIOUS))
-         (t
-          (let ((thunk (progn ,@compilation-body)))
-            (setf (car ,PLACE) (list thunk ,@keysyms))
-            thunk))))))
+  (let ((key-values '())
+        (key-tests '()))
+    (dolist (key keys)
+      (destructuring-bind (value &key (test 'equal)) key
+        (push value key-values)
+        (push test key-tests)))
+    (setf key-values (nreverse key-values))
+    (setf key-tests (nreverse key-tests))
+    (let* ((keysyms (loop repeat (length keys) collect (gensym)))
+           (place (gensym))
+           (previous (gensym))
+           (check
+            (when keysyms
+              `((let ((l (cdr ,PREVIOUS)))
+                  , (labels ((recurse (vars tests)
+                               `(and (,(car tests) (car l) ,(car vars))
+                                     ,@ (when (cdr vars)
+                                          `((let ((l (cdr l)))
+                                              ,(recurse (cdr vars)
+                                                        (cdr tests))))))))
+                      (recurse keysyms key-tests)))))))
+      `(let* ((,PLACE (load-time-value (cons nil nil)))
+              (,PREVIOUS (car ,PLACE))
+              ,@(mapcar #'list keysyms key-values))
+         (cond
+           ((and ,PREVIOUS ,@check)
+            (car ,PREVIOUS))
+           (t
+            (let ((thunk (progn ,@compilation-body)))
+              (setf (car ,PLACE) (list thunk ,@keysyms))
+              thunk)))))))

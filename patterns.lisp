@@ -275,7 +275,8 @@
 (define-compiler-macro node-matches-p (node pattern)
   (once-only (pattern)
     `(matching-value
-      (with-cache (,pattern *dynamic-namespaces*)
+      (with-cache ((,pattern)
+                   (*dynamic-namespaces* :test namespaces-match-p))
         (make-pattern-matcher*
          ,pattern
          (make-dynamic-environment *dynamic-namespaces*)))
@@ -340,7 +341,7 @@
                                    *dynamic-namespaces*)))))
     `(funcall
       (matching-value
-       (with-cache (*dynamic-namespaces*)
+       (with-cache ((*dynamic-namespaces* :test namespaces-match-p))
          (make-pattern-matcher (append ,@patterns)))
        ,node
        (lambda () ,@otherwise-body)))))

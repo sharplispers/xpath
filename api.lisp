@@ -192,6 +192,12 @@
                do (return nil)
              finally (return t))))
 
+(defun namespaces-match-p (old-bindings cur-bindings)
+  (loop for (key . value) in old-bindings
+     when (not (equal value (cdr (assoc key cur-bindings :test #'equal))))
+     do (return nil)
+     finally (return t)))
+
 (defmacro evaluate (xpath context &optional unordered-p)
   "@arg[xpath]{an XPath expression}
    @arg[context]{an XPath context}
