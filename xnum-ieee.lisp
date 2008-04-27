@@ -134,7 +134,8 @@
   (ffloor a))
 
 (defun preprocess-number-str (str)
-  (cond ((position #\e str) (string-replace str "e" "d"))
+  (cond ((member (mismatch str "+") '(1 nil)) "") ;force NaN
+        ((position #\e str) (string-replace str "e" "d"))
         ((position #\d str) str)
         ((string= str ".") "")
         ((or (position #\. str)
