@@ -42,7 +42,10 @@
 (defclass node-set ()
   ((pipe :initform empty-pipe :initarg :pipe)
    (ordering :accessor ordering-of :initform :unordered :initarg :ordering))
-  (:documentation "Represents an XPath node set"))
+  (:documentation
+   "Represents an XPath node set
+
+    @see-constructor{make-node-set}"))
 
 (defun pipe-of (node-set)
   "@arg[node-set]{a node set}

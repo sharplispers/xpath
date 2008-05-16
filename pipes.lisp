@@ -70,7 +70,7 @@
   "@arg[pipe]{a pipe}
    @arg[count]{a non-negative integer}
    @arg[key]{a function}
-   @arg[result]{an object]
+   @arg[result]{an object}
    @return{the value of @key{result} (the value of @code{pipe} by default)}
    Goes through all or @code{count} elements of pipe,
    possibly applying the @code{key} function."
