@@ -31,4 +31,5 @@
                  (:file "plx")
                  (:file "xmls-compat")
                  (:file "patterns")
+                 (:file "profile")
                  (:file "xpath-test")))

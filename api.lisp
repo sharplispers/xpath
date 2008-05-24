@@ -155,10 +155,12 @@
     (xpath-error "invalid xpath designator: ~A" xpath))
   (if (functionp xpath)
       xpath
-      (compile-xpath/sexpr (if (stringp xpath)
-                               (parse-xpath xpath)
-                               (second xpath))
-                           environment)))
+      (maybe-wrap-profiling
+       xpath
+       (compile-xpath/sexpr (if (stringp xpath)
+                                (parse-xpath xpath)
+                                (second xpath))
+                            environment))))
 
 (defun evaluate-compiled (compiled-xpath context &optional unordered-p)
   "@arg[compiled-xpath]{a compiled XPath expression}
@@ -226,7 +228,8 @@
       (if (functionp ,xpath)
           ,xpath
           (with-cache ((,xpath :test equal)
-                       (*dynamic-namespaces* :test namespaces-match-p))
+                       (*dynamic-namespaces* :test namespaces-match-p)
+                       (*profiling-enabled-p* :test eql))
             (compile-xpath ,xpath
                            (make-dynamic-environment
                             *dynamic-namespaces*))))

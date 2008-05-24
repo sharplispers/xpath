@@ -40,11 +40,14 @@
    @see{compute-patterns}")
 
 (defstruct (pattern
-             (:constructor %make-pattern (key thunk priority value)))
+             (:constructor %make-pattern
+                           (key thunk priority value expression)))
   priority
   value
   key
-  thunk)
+  thunk
+  ;; for profiler output only:
+  expression)
 
 (setf (documentation 'pattern 'type)
       "Represents a parsed XSLT pattern.
@@ -201,31 +204,33 @@
             (push spec (gethash type type-patterns)))
            (t
             (push spec other-patterns))))
-    (lambda (node)
-      (let ((results nil)
-            (result-priority nil))
-        (flet ((process-spec (spec)
-                 (destructuring-bind (priority thunk value)
-                     spec
-                   (when (and (or (null result-priority)
-                                  (<= result-priority priority))
-                              (funcall thunk node))
-                     (cond
-                       ((null result-priority)
-                        (setf result-priority priority))
-                       ((< result-priority priority)
-                        (setf result-priority priority)
-                        (setf results nil)))
-                     (pushnew value results)))))
-          (let ((name (xpath-protocol:local-name node))
-                (uri (xpath-protocol:namespace-uri node))
-                (type (node-type node)))
-            (when name
-              (mapc #'process-spec (gethash (cons name uri) name-patterns))
-              (mapc #'process-spec (gethash uri namespace-patterns)))
-            (mapc #'process-spec (gethash type type-patterns))
-            (mapc #'process-spec other-patterns)))
-        results))))
+    (maybe-wrap-profiling
+     patterns
+     (lambda (node)
+       (let ((results nil)
+             (result-priority nil))
+         (flet ((process-spec (spec)
+                  (destructuring-bind (priority thunk value)
+                      spec
+                    (when (and (or (null result-priority)
+                                   (<= result-priority priority))
+                               (funcall thunk node))
+                      (cond
+                        ((null result-priority)
+                         (setf result-priority priority))
+                        ((< result-priority priority)
+                         (setf result-priority priority)
+                         (setf results nil)))
+                      (pushnew value results)))))
+           (let ((name (xpath-protocol:local-name node))
+                 (uri (xpath-protocol:namespace-uri node))
+                 (type (node-type node)))
+             (when name
+               (mapc #'process-spec (gethash (cons name uri) name-patterns))
+               (mapc #'process-spec (gethash uri namespace-patterns)))
+             (mapc #'process-spec (gethash type type-patterns))
+             (mapc #'process-spec other-patterns)))
+         results)))))
 
 (defun compute-patterns (expression priority value environment)
   "@arg[expression]{a string or s-expression}
@@ -246,12 +251,13 @@
 
    @see{make-pattern-matcher*}
    @see{make-pattern-matcher}"
-  (multiple-value-bind (keys thunks)
+  (multiple-value-bind (keys thunks subexpressions)
       (compile-pattern-expression expression environment)
-    (mapcar (lambda (key thunk)
-              (%make-pattern key thunk priority value))
+    (mapcar (lambda (key thunk subexpression)
+              (%make-pattern key thunk priority value subexpression))
             keys
-            thunks)))
+            thunks
+            subexpressions)))
 
 (defun node-matches-p (node pattern-expression)
   "@arg[node]{any node implementing the XPath protocol}
@@ -276,7 +282,8 @@
   (once-only (pattern)
     `(matching-value
       (with-cache ((,pattern)
-                   (*dynamic-namespaces* :test namespaces-match-p))
+                   (*dynamic-namespaces* :test namespaces-match-p)
+                   (*profiling-enabled-p* :test eql))
         (make-pattern-matcher*
          ,pattern
          (make-dynamic-environment *dynamic-namespaces*)))
@@ -341,7 +348,8 @@
                                    *dynamic-namespaces*)))))
     `(funcall
       (matching-value
-       (with-cache ((*dynamic-namespaces* :test namespaces-match-p))
+       (with-cache ((*dynamic-namespaces* :test namespaces-match-p)
+                    (*profiling-enabled-p* :test eql))
          (make-pattern-matcher (append ,@patterns)))
        ,node
        (lambda () ,@otherwise-body)))))
@@ -420,7 +428,8 @@
   (assert (eq (car pattern) :patterns))
   (values
    (mapcar (lambda (x) (subpattern-key x environment)) (cdr pattern))
-   (mapcar (lambda (x) (compile-subpattern x environment)) (cdr pattern))))
+   (mapcar (lambda (x) (compile-subpattern x environment)) (cdr pattern))
+   (cdr pattern)))
 
 (defun subpattern-key (subpattern environment)
   (ecase (car subpattern)

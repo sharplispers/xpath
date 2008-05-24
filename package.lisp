@@ -139,7 +139,10 @@
            #:define-extension
            #:define-xpath-function/lazy
            #:define-xpath-function/eager
-           #:define-xpath-function/single-type)
+           #:define-xpath-function/single-type
+           #:enable-profiling
+           #:disable-profiling
+           #:report)
   (:export #:compile-xpath
            #:parse-xpath
 
@@ -303,7 +306,10 @@
                 #:define-extension
                 #:define-xpath-function/lazy
                 #:define-xpath-function/eager
-                #:define-xpath-function/single-type)
+                #:define-xpath-function/single-type
+                #:enable-profiling
+                #:disable-profiling
+                #:report)
   (:export #:make-node-set
            #:make-pipe
            #:pipe-head
@@ -317,7 +323,10 @@
            #:define-extension
            #:define-xpath-function/lazy
            #:define-xpath-function/eager
-           #:define-xpath-function/single-type)
+           #:define-xpath-function/single-type
+           #:enable-profiling
+           #:disable-profiling
+           #:report)
   (:documentation
    "The XPATH-SYS package provides an API for extensions to Plexippus XPath.
 
@@ -370,6 +379,14 @@
    @aboutmacro{define-xpath-function/eager}
    @aboutmacro{define-xpath-function/single-type}
    @aboutfun{find-xpath-function}
+   @end{section}
+   @begin[Profiling support]{section}
+   The profiling facility records the run time of XPath evaluations
+   and pattern matching.
+
+   @aboutfun{enable-profiling}
+   @aboutfun{disable-profiling}
+   @aboutfun{report}
    @end{section}
    @begin[Miscellaneous functions]{section}
    Other useful functions:
