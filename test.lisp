@@ -29,6 +29,18 @@
 
 (in-package :xpath)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;; Please note:
+;;;
+;;; When changing Plexippus XPath, also run the entire
+;;; XSLT suite using Xuriella XSLT like this:
+;;;
+;;;   $ cd xuriella && git submodule update --init
+;;;   > (xuriella::run-tests)
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defvar *tests* nil)
 
 (defmacro assert-equal (expected actual)
