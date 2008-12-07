@@ -56,7 +56,8 @@
    @pre{plx:generate-id(node-set?)}
    Returns an alphanumeric string that uniquely identifies the first node of
    the @code{node-set} (or context node if @code{node-set} isn't specified)
-   within its document. Analagous to @code{generate-id()} of XSLT."
+   within its document. Analagous to @code{generate-id()} of XSLT (except
+   that the latter works across multiple documents)."
   `(with-namespaces (("plx" *plx-uri*)) ,@body))
 
 (define-extension plx *plx-uri*)

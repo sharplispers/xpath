@@ -90,17 +90,11 @@
 	<ul class="main">
 	  <li>
 	    <a href="installation.html">
-	      Installing <xsl:value-of select="/page/@title"/>
+	      Download and Installation
 	    </a>
-	    <ul class="sub">
-	      <li><a href="installation.html#download">Download</a></li>
-	      <li><a href="installation.html#compilation">Installation</a></li>
-	    </ul>
 	  </li>
 	  <li>
-	    <a href="examples.html"><strike>Examples</strike></a>
-	    (to be written)
-	    <br/>&#160;
+	    <a href="examples.html">Examples</a>
 	  </li>
 	  <li>
 	    <a href="atdoc/index.html">API documentation</a>

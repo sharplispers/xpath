@@ -4,7 +4,8 @@
   <h3>About</h3>
 
   <p>
-    Plexippus XPath is an implementation of XPath 1.0.
+    Plexippus XPath is an implementation of XPath 1.0, written by
+    Ivan Shvedunov.
   </p>      
 
   <p>
@@ -14,16 +15,33 @@
     (<a href="http://common-lisp.net/cgi-bin/mailman/listinfo/plexippus-xpath-devel">list information</a>).
   </p>
 
+  <h3>Implementation-specific notes</h3>
+  <p>
+    This beta version of Plexippus XPath works only
+    on <a href="http://www.sbcl.org">SBCL</a>.
+  </p>
+  <p>
+    Ports to other Lisps are welcome and mainly involve
+    implementation-specific support for non-trapping IEEE floating point
+    arithmetic.  Please submit patches to the mailing list, ideally
+    after running the XSLT test suite using
+    the <a href="http://common-lisp.net/project/xuriella/">Xuriella
+    XSLT</a> project.
+  </p>
+
   <h3>Related projects</h3>
   <ul>
     <li>
       <a href="http://common-lisp.net/project/cxml/">Closure XML</a>
     </li>
+    <li>
+      <a href="http://common-lisp.net/project/xuriella/">Xuriella XSLT</a>
+    </li>
   </ul>
 
-  <h3>Recent Changes</h3>
-  <p><b>2008-xx-yy</b></p>
+  <h3>Recent changes</h3>
+  <p><b>2008-12-07</b></p>
   <ul>
-    <li>not released yet; work in progress</li>
+    <li>First beta release</li>
   </ul>
 </page>

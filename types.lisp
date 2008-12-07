@@ -48,7 +48,7 @@
     @see-constructor{make-node-set}"))
 
 (defun pipe-of (node-set)
-  "@arg[node-set]{a node set}
+  "@arg[node-set]{a @class{node-set}}
    @return{a pipe}
    Returns the pipe that contains the elements of the @code{node-set}."
   (slot-value node-set 'pipe))
@@ -56,7 +56,7 @@
 ;; FIXME: (setf ...) functions aren't documented by atdoc
 (defun (setf pipe-of) (pipe node-set)
   "@arg[pipe]{a pipe}
-   @arg[node-set]{a node-set}
+   @arg[node-set]{a @class{node-set}}
    @return{the value of @code{pipe}}
    Sets the pipe that contains the element sof the @code{node-set}."
   (setf (slot-value node-set 'pipe) pipe))
@@ -74,7 +74,7 @@
   (typep object 'node-set))
 
 (defun node-set-empty-p (node-set)
-  "@arg[node-set]{a node-set}
+  "@arg[node-set]{a @class{node-set}}
    @return{a generalized boolean}
    Returns true if @code{node-set} is empty"
   (pipe-empty-p (pipe-of node-set)))
@@ -82,8 +82,8 @@
 (defun make-node-set (pipe &optional (ordering :unordered))
   "@arg[pipe]{a pipe}
    @arg[ordering]{one of :document-order, :reverse-document-order, :unordered}
-   @return{a node set}
-   Makes a node set containing nodes from the @code{pipe} with specified @code{ordering}."
+   @return{a @class{node-set}}
+   Makes a @class{node-set} containing nodes from the @code{pipe} with specified @code{ordering}."
   (let ((visited (make-hash-table :test 'equal)))
     (make-instance 'node-set
                    :pipe (filter-pipe
@@ -95,7 +95,7 @@
                    :ordering ordering)))
 
 (defun sort-node-set (node-set)
-  "@arg[node-set]{a node set}
+  "@arg[node-set]{a @class{node-set}}
    @return{a sorted version of @code{node-set}}
    Sorts the @code{node-set} according to document order."
   (make-node-set (sorted-pipe-of node-set)
@@ -331,11 +331,11 @@
 
 (defun node-set-value (value)
   "@arg[value]{value of an XPath-supported type or an XML node}
-   @return{a node set}
+   @return{a @class{node-set}}
    @short{Returns the value of XPath node-set() function.}
 
-   For XML nodes returns a node set consisting of the single node specified
-   by @code{value}."
+   For XML nodes returns a @class{node-set} consisting of the single node
+   specified by @code{value}."
   (cond ((node-set-p value)
          value)
         ((xpath-protocol:node-p value)

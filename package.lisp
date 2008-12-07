@@ -352,6 +352,7 @@
    is usually sorted either in document order,or in reverse document order.
    See @fun{xpath:evaluate} for the @code{unordered} argument.
 
+   @aboutclass{node-set}
    @aboutfun{make-node-set}
    @aboutfun{pipe-of}
    @end{section}

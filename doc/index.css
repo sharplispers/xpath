@@ -165,3 +165,18 @@ div.sidebar ul.hack {
   margin: 0 0 1em;
   list-style-type: none;
 }
+
+pre {
+  padding: 1em;
+  width: 70%;
+  background-color: #f7f7f7;
+  border: 1px solid #0070a0 /* default color */;
+}
+
+p {
+  width: 90%;
+}
+
+li {
+  width: 90%;
+}
