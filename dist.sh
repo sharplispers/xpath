@@ -31,7 +31,7 @@ trap cleanup exit
 make -C doc
 
 darcs tag $name_and_date
-darcs put -t $name_and_date $TMPDIR/$name_and_date
+darcs put --no-set-default -t $name_and_date $TMPDIR/$name_and_date
 rm -rf $TMPDIR/$name_and_date/_darcs
 
 echo '(progn (load "dist.lisp") (quit))' | clbuild lisp 
