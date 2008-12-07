@@ -1,0 +1,250 @@
+<page title="Plexippus XPath Examples">
+
+  <toc/>
+
+  <section>Preparations</section>
+  <p>
+    Make sure to <a href="installation.html">load Plexippus</a> before
+    running the examples.
+  </p>
+
+  <pre>CL-USER> (asdf:operate 'asdf:load-op :xpath)</pre>
+
+  First, parse an XML document into memory.  (This step does not involve
+  XPath yet):
+  <pre>CL-USER> (defparameter *document*
+	   (cxml:parse "&lt;test a='1' b='2' xmlns:foo='http://foo'>
+                          &lt;child>hello world&lt;/child>
+                          &lt;foo:child>bar&lt;/foo:child>
+                        &lt;/test>"
+		       (stp:make-builder)))
+*DOCUMENT*</pre>
+
+  <section>Using XPATH:EVALUATE</section>
+  <p>
+    Almost all uses of XPath involve the <tt>evaluate</tt> function.
+    Its first argument is the XPath expression to evaluate.  The second
+    argument is a <i>context</i> designator, for example an XML node.
+  </p>
+  <p>
+    Let's start with a trivial example adding two numbers.  The context
+    argument does not matter in this example.  Also note that XPath is
+    specified to use IEEE double float arithmetic, so we get 3.0d0 rater
+    than the integer 3:
+  </p>
+  <pre>CL-USER> (xpath:evaluate "1 + 2" *document*)
+3.0d0</pre>
+  <p>
+    As a slightly more exciting test, we select numbers from the
+    document.  Note the two attributes called <tt>a</tt> and <tt>b</tt>.
+    Again we get 3.0d0, because the strings were turned into numbers by
+    the addition operation:
+  </p>
+  <pre>CL-USER> (xpath:evaluate "test/@a + test/@b" *document*)
+3.0d0</pre>
+  <p>
+    Finally, here is code that finds the "hello world" string in the
+    document above: First we select the <tt>child</tt> element, then we
+    compute its string value.  (The expression for //child actually
+    returns a node set, and xpath:string-value select the string value
+    of the textually first node in the set.  Below we will see how to
+    deal with node sets directly.)
+  </p>
+  <pre>CL-USER> (xpath:string-value (xpath:evaluate "//child" *document*))
+"hello world"</pre>
+
+  <section>Working with node sets</section>
+  <p>
+    Revisiting the previous example, let's look at the node set returned
+    when evaluating <tt>//child</tt>.
+  </p>
+  <p>
+    The result is a rather verbose-looking <tt>xpath:node-set</tt>
+    object like this:
+  </p>
+  <pre>CL-USER> (xpath:evaluate "//child" *document*)
+#&lt;XPATH:NODE-SET #.(ELEMENT
+                    #| :PARENT of type ELEMENT |#
+                    CHILDREN '(#.(TEXT
+                                  #| :PARENT of type ELEMENT |#
+                                  DATA hello world))
+                    LOCAL-NAME child),
+  ... {22FF24F1}></pre>
+  <p>
+    Looking closely, we see that the node set contains an STP element
+    object for <tt>&lt;child></tt>, which is what we were looking for.
+  </p>
+  <p>
+    We also see <tt>...</tt> in the output.  What does that mean?  It
+    refers to a possible rest of the node set.  The printer shows only
+    the first element for two reasons.  One reason is brevity.  The
+    other is more technical: Whenever possible, node sets are computed
+    <i>lazily</i>, meaning that the rest of the node set hasn't actually
+    been determined yet.
+  </p>
+  <p>
+    We can force the delayed tail of the node set to be computed by
+    asking for <tt>xpath:all-nodes</tt>.  In this case there turns out
+    to be only one node:
+  </p>
+  <pre>CL-USER> (xpath:all-nodes (xpath:evaluate "//child" *document*))
+(#.(ELEMENT
+    #| :PARENT of type ELEMENT |#
+    :CHILDREN '(#.(TEXT #| :PARENT of type ELEMENT |# :DATA "hello world"))
+    :LOCAL-NAME "child"))</pre>
+  <p>
+    When working with node sets containing more than one node, the
+    convenience macro <tt>xpath:do-node-set</tt> can be helpful.  It is
+    similar to <tt>dolist</tt>, but iterates over a node set's pipe.
+  </p>
+  <pre>CL-USER> (xpath:do-node-set (node (xpath:evaluate "//*" *document*))
+	   (format t "found element: ~A~%"
+		   (xpath-protocol:local-name node)))
+found element: test
+found element: child</pre>
+  <p>
+    In all of these cases, nodes are returned in <i>document order</i>,
+    i.e. in the textual order nodes would also be found in the XML
+    document when serialized.
+  </p>
+
+  <section>Namespaces</section>
+  <p>
+    When looking for <tt>//child</tt> above, we only got one node,
+    because the second element with a local-name of <tt>child</tt> is in
+    a different namespace.  To address such an element using a qualified
+    name in an XPath expression, its namespace needs to be declared
+    using <tt>xpath:with-namespaces</tt> first.  Here's an example:
+  </p>
+  <pre>CL-USER> (xpath:with-namespaces (("foo" "http://foo"))
+           (xpath:evaluate "string(//foo:child)" *document*))
+"bar"</pre>
+  <p>
+    Note that it does not matter which namespace prefix we use to name
+    the 'http://foo' namespace.  We could have called it 'foo' in the
+    XML document and 'quux' when using XPath, because the namespace URI
+    is what identifies the namespace, not the prefix.
+  </p>
+  <p>
+    The `dynamic environment' configured by <tt>with-namespaces</tt>
+    uses special variables to find namespaces, allowing the same
+    occurance of <tt>xpath:evaluate</tt> to be compiled only once, and
+    then used for different namespaces at run-time, depending on the
+    environment established by its caller:
+  </p>
+  <pre>CL-USER> (defun dynamic-environment-example ()
+           (xpath:evaluate "string(//foo:child)" *document*))
+DYNAMIC-ENVIRONMENT-EXAMPLE
+
+CL-USER> (xpath:with-namespaces (("foo" "http://foo"))
+           (dynamic-environment-example))
+"bar"
+
+CL-USER> (xpath:with-namespaces (("foo" ""))
+           (dynamic-environment-example))
+"hello world"</pre>
+  <p>
+    (If you are curious how this works, try <tt>(trace
+    xpath:compile-xpath</tt>) before re-evaluating these forms multiple
+    times.  Watch how recompilation is done at run-time, but only if
+    namespaces changed.)
+  </p>
+
+  <section>Variables</section>
+  <p>
+    XPath variables allow caller-specified values to be used in
+    expressions:
+  </p>
+  <pre>CL-USER> (xpath:with-variables (("x" 2))
+	   (xpath:evaluate "$x + 1" *document*))
+3.0d0</pre>
+
+  <section>Advanced example: Explicit compilation and environments</section>
+  <p>
+    This example is meant to give a brief glimpse of extensibility
+    features offered by Plexippus.
+  </p>
+  <p>
+    We previously used the <tt>xpath:evaluate</tt> function, which
+    compiles and evaluates an XPath expression automatically.  (It also
+    has a compiler macro, which arranges for caching of compiled
+    closures and their run-time recompilation.)
+  </p>
+  <p>
+    Here, we call lower-level XPath functions directly to simulate  
+    the work <tt>xpath:evaluate</tt> normally does.
+  </p>
+  <pre>CL-USER> (defparameter *precompiled-closure*
+           (xpath:compile-xpath "//@a + //@b" 
+                                (xpath::make-dynamic-environment nil)))
+*PRECOMPILED-CLOSURE*
+
+CL-USER> *precompiled-closure*
+#&lt;CLOSURE (LAMBDA (XPATH:CONTEXT)) {2522F749}>
+
+CL-USER> (xpath:evaluate-compiled *precompiled-closure* *document*)
+3.0d0</pre>
+  <p>
+    We see several new concepts here:
+  </p>
+  <p>
+    <ul>
+      <li>
+	XPath isn't evaluated directly.  Instead, it is compiled into
+	closures.
+      </li>
+      <li>
+	To use a pre-compiled closure, call xpath:evaluate-compile instead
+	of xpath:evaluate.  (As you can see, closures basically just take
+	a context argument, but please don't call them directly, because
+	some Plexippus internals might not be configured correctly if you
+	do so.  In particular, IEEE floating point traps need to be turned
+	off for correct XPath behaviour.  We also tweak node sets slightly
+	before returning them to use code.)
+      </li>
+      <li>
+	Compilation references an <i>environment</i> object, which
+	provides namespaces and implements XPath variables and
+	functions.  The default in xpath:evaluate is a `dynamic
+	environment', implementing with-namespaces and with-variables.
+	You can subclass xpath::environment to implement various generic
+	functions differently.
+      </li>
+    </ul>
+  </p>
+
+  <section>Advanced example: Context objects</section>
+  <p>
+    Previously why we talked about a `context' designator argument to
+    xpath:evaluate (but all examples above only pass ordinary nodes as
+    context designators).  Here is what the context does.
+  </p>
+  <p>
+    First, let's grab the <tt>child</tt> element.
+  </p>
+  <pre>CL-USER> (defparameter *child*
+	   (xpath:first-node (xpath:evaluate "/test/child" *document*)))
+*CHILD*</pre>
+  <p>
+    Using *child* as the context node, some examples:
+  </p>
+  <pre>CL-USER> (xpath:evaluate "string()" *child*)
+"hello world"
+
+CL-USER> (xpath:evaluate "position()" *child*)
+1
+
+CL-USER> (xpath:evaluate "last()" *child*)
+1</pre>
+  <p>
+    Here, the position() and size() are 1 by default, based on the
+    assumption that the node passed as an argument is the only member of
+    the a conceptual `current node set' the caller might be walking.
+    But we can pretend that we are at a different position:
+  </p>
+  <pre>CL-USER> (xpath:evaluate "position()" (xpath:make-context *child* 5 2))
+2
+
+CL-USER> (xpath:evaluate "last()" (xpath:make-context *child* 5 2))
+5</pre>
+</page>

@@ -1,6 +1,6 @@
 USER=ishvedunov
 
-all: index.html installation.html
+all: index.html installation.html examples.html
 
 %.html: %.xml index.xsl
 	xsltproc index.xsl $< >$@.tmp
