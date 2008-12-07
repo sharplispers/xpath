@@ -16,7 +16,7 @@
     <a href="http://common-lisp.net/project/cxml">cxml</a>,
     <a href="http://cliki.net/parse-number">parse-number</a>,
     <a href="http://www.weitz.de/cl-ppcre">cl-ppcre</a>,
-    and <a href="http://common-lisp.net/project/cl-yacc">cl-yacc</a>.
+    and <a href="http://www.pps.jussieu.fr/~jch/software/cl-yacc/">cl-yacc</a>.
 
   </p>
   <p>
