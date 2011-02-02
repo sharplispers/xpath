@@ -627,3 +627,12 @@
     (assert-equal
      '(("a" (("id" "1"))) ("c" (("id" "6"))))
      (all-nodes (evaluate "//c[position()=2]|//a[@id='1']" d)))))
+
+(deftest mappend-lazy
+  (let* ((x nil)
+         (pipe (mappend-pipe (lambda (x) (list (- x)))
+                             (make-pipe 1 (progn (setf x t) '(2))))))
+    (assert (not x))
+    (assert (eql -1 (pipe-head pipe)))
+    (assert (eql -2 (pipe-head (pipe-tail pipe))))
+    (assert x)))

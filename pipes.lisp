@@ -128,12 +128,19 @@
             (make-pipe result (map-pipe-filtering fn tail filter-test))
             (map-pipe-filtering fn tail filter-test)))))
 
-(defun append-pipes (pipex pipey)
-  "return a pipe that appends two pipes"
+(defmacro append-pipes (pipex pipey)
+  "return a pipe that appends two pipes.
+
+   The evaluation style of this macro has been chosen to be consistent
+   with MAKE-PIPE: The first argument is evaluated eagerly; the second
+   argument lazily."
+  `(%append-pipes ,pipex #'(lambda () ,pipey)))
+
+(defun %append-pipes (pipex pipey-fun)
   (if (pipe-empty-p pipex)
-      pipey
+      (funcall pipey-fun)
       (make-pipe (pipe-head pipex)
-                 (append-pipes (pipe-tail pipex) pipey))))
+                 (append-pipes (pipe-tail pipex) (funcall pipey-fun)))))
 
 (defun mappend-pipe (fn pipe)
   "lazily map fn over pipe, appending results"
