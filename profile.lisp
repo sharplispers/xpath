@@ -203,7 +203,7 @@
        (incf (second accum) real)
        (incf (third accum)))
     (loop
-       for key being each hash-key using (hash-value accum) in table
+       for key being each hash-key in table using (hash-value accum)
        if (and (consp key) (eq (car key) 'pattern))
        collect (cons key accum) into patterns
        else collect (cons key accum) into expressions
