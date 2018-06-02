@@ -47,13 +47,12 @@
   (unless (<= (xpath-function-min-args xpath-function)
               (length argument-thunks)
               (xpath-function-max-args xpath-function))
-   (xpath-error "invalid number of arguments -- ~a for function ~a"
-                (length argument-thunks)
-                (xpath-function-name xpath-function)))
-  (let ((func (funcall (xpath-function-compiler xpath-function) argument-thunks))
-        (name (xpath-function-name xpath-function)))
-    #'(lambda (context)
-        (funcall func context))))
+    (xpath-error "invalid number of arguments -- ~a for function ~a"
+                 (length argument-thunks)
+                 (xpath-function-name xpath-function)))
+  (let ((func (funcall (xpath-function-compiler xpath-function) argument-thunks)))
+    (lambda (context)
+      (funcall func context))))
 
 (defun %define-extension (name uri documentation)
   (check-type uri string)
@@ -254,4 +253,3 @@
       `(%define-xpath-function/eager ,ext ,name
            #'(lambda (,thunk) (,value-func-name (funcall ,thunk context)))
            ,args ,@body))))
-
