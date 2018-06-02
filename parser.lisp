@@ -257,63 +257,8 @@
    Parses a string-based XPath expression into s-expression-based one."
   (handler-bind
       ((error
-        (lambda (c)
-          (unless (typep c 'xpath-error)
-            (xpath-error "invalid XPath syntax: ~A in: ~A" c str)))))
+         (lambda (c)
+           (unless (typep c 'xpath-error)
+             (xpath-error "invalid XPath syntax: ~A in: ~A" c str)))))
     (yacc:parse-with-lexer (make-fixup-lexer (xpath-lexer str))
                            *xpath-parser*)))
-
-
-;;;;
-
-(defun test-lexer (str)
-  (let* ((l '())
-         (m '())
-         (g (xpath-lexer str))
-         (fn (make-fixup-lexer
-              (lambda ()
-                (multiple-value-bind (a b)
-                    (funcall g)
-                  (push (cons a b) l)
-                  (values a b))))))
-    (loop
-       (multiple-value-bind (a b) (funcall fn)
-         (unless a (return))
-         (push (cons a b) m)))
-    (setf l (nreverse l))
-    (setf m (nreverse m))
-    (loop
-       for (a . b) = (pop l)
-       for (c . d) = (pop m)
-       while (or a b)
-       do
-         (format t "~:[*~; ~] ~S~,10T ~S~,30T ~S~,10T ~S~%"
-                 (eq a c) a b c d))))
-
-(defun dribble-tests ()
-  (with-open-file (log "/home/david/src/lisp/xpath/TESTS"
-                       :direction :output
-                       :if-exists :supersede
-                       :external-format :utf8)
-    (let ((test-cases
-           (with-open-file (s "/home/david/src/lisp/xuriella/XPATH"
-                              :external-format :utf8)
-             (read s)))
-          (npass 0)
-          (env (make-test-environment)))
-      (loop
-         for str in test-cases
-         for i from 0
-         do
-           (handler-case
-               (let ((form (parse-xpath str)))
-                 (handler-case
-                     (progn
-                       (compile-xpath form env)
-                       (incf npass)
-                       (format log "~D PASS~%" i))
-                   (error (c)
-                     (format log "~D FAIL (compile): ~A~%  ~A~%" i str c))))
-             (error (c)
-               (format log "~D FAIL (parse): ~A~%  ~A~%" i str c))))
-      (format log "Passed ~D/~D tests.~%" npass (length test-cases)))))

@@ -39,4 +39,5 @@
     :components ((:file "test")
                  #+sbcl (:file "xnum-ieee-test")
                  #-sbcl (:file "xnum-test")
+                 (:file "parser-test")
                  (:file "xpath-test")))
