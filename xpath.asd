@@ -2,8 +2,11 @@
 
 (defsystem "xpath"
   :name "plexippus-xpath"
+  :description "An implementation of the XML Path Language (XPath) Version 1.0"
+  :license "2 clause BSD" ; TODO maybe X11-style? check homepage(s)
   :author ("Ivan Shvedunov"
            "David Lichteblau")
+  :maintainer "Sharp Lispers <sharplispers@googlegroups.com>"
 
   :version "0.1"
   :depends-on ("cxml" "parse-number" "cl-ppcre" "yacc")
