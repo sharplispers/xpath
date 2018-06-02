@@ -13,7 +13,6 @@
     :depends-on (:cxml :parse-number :cl-ppcre :yacc)
     :components ((:file "package")
                  (:file "utils")
-                 (:file "test")
                  (:file "pipes")
                  (:file "protocol")
                  #+sbcl (:file "xnum-ieee")
@@ -31,5 +30,11 @@
                  (:file "plx")
                  (:file "xmls-compat")
                  (:file "patterns")
-                 (:file "profile")
+                 (:file "profile"))
+    :in-order-to ((test-op (test-op #:xpath/test))))
+
+(defsystem #:xpath/test
+    :depends-on (:xpath)
+    :serial t
+    :components ((:file "test")
                  (:file "xpath-test")))
