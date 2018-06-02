@@ -37,4 +37,6 @@
     :depends-on (:xpath)
     :serial t
     :components ((:file "test")
+                 #+sbcl (:file "xnum-ieee-test")
+                 #-sbcl (:file "xnum-test")
                  (:file "xpath-test")))
