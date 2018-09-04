@@ -83,8 +83,8 @@
 
 (defparameter *initial-namespaces*
   '((nil . "")
-    ("xmlns" . #"http://www.w3.org/2000/xmlns/")
-    ("xml" . #"http://www.w3.org/XML/1998/namespace")))
+    ("xmlns" . "http://www.w3.org/2000/xmlns/")
+    ("xml" . "http://www.w3.org/XML/1998/namespace")))
 
 (defvar *dynamic-namespaces* *initial-namespaces*)
 (defvar *dynamic-var-bindings* nil)
