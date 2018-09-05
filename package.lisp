@@ -123,8 +123,21 @@
     @aboutfun{matching-values}
     @end{section}"))
 
+(defpackage :xpath-utils
+  (:use #:cl)
+  (:export #:mklist
+           #:concat
+           #:string-replace
+           #:trim
+           #:with-gensyms
+           #:once-only
+           #:proper-list-p
+           #:maybe-progn
+           #:hypsym
+           #:with-cache))
+
 (defpackage :xpath
-  (:use cl :xpattern)
+  (:use cl :xpattern #:xpath-utils)
   (:import-from :xpath-protocol #:define-default-method)
   (:intern #:make-node-set
            #:make-pipe
