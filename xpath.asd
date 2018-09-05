@@ -37,10 +37,11 @@
 
 (defsystem "xpath/test"
   :depends-on ("xpath")
-
   :serial t
   :components ((:file "test")
                #+sbcl (:file "xnum-ieee-test")
                #-sbcl (:file "xnum-test")
                (:file "parser-test")
-               (:file "xpath-test")))
+               (:file "xpath-test"))
+  :perform (test-op (o c)
+                    (uiop:symbol-call :xpath-test '#:run-all-tests)))
