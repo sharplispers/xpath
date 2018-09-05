@@ -27,7 +27,38 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(in-package :xpath)
+(cl:defpackage #:xpath-test
+  (:use #:common-lisp #:xpath #:xpattern #:xpath-utils)
+  (:import-from #:xpath
+                #:make-pipe
+                #:mappend-pipe
+                #:pipe-head
+                #:pipe-tail
+                #:pipe-of
+                #:force
+                #:get-node-text
+                #:xnum-p
+                #:+NAN+
+                #:with-float-traps-masked
+                #:compare-values
+                #:compare-numbers
+                #:make-node-set
+                #:parse-xnum
+                #:assert-float-equal*
+                #:xnum-/
+                #:xnum-*
+                #:xnum-+
+                #:xnum--
+                #:xnum-mod
+                #:xnum-round
+                #:xnum-floor
+                #:xnum-ceiling
+                #:xnum->string
+                #:make-fixup-lexer
+                #:make-test-environment
+                #:xpath-lexer))
+
+(in-package #:xpath-test)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
