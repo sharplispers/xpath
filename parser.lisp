@@ -115,8 +115,7 @@
    (:ns-name (lambda* (a) `(:namespace ,a)))
    (:qname (lambda* (a) `(:qname ,(car a) ,(cdr a))))
    :ncname
-   (operator-actually-ncname
-    (lambda* (a) (string-downcase (symbol-name a))))
+   operator-actually-ncname
    (:star (lambda* (nil) '*))
    (:node-type-or-function-name
     :lparen :rparen
@@ -126,8 +125,12 @@
                               :processing-instruction))
    (:processing-instruction :lparen :literal :rparen
                             (lambda* (nil nil a nil)
-                                     `(:processing-instruction ,a))))
-  (operator-actually-ncname :mod :div :and :or)
+                              `(:processing-instruction ,a))))
+  (operator-actually-ncname
+   (:mod (lambda* (a) (declare (ignore a)) "mod"))
+   (:div (lambda* (a) (declare (ignore a)) "div"))
+   (:and (lambda* (a) (declare (ignore a)) "and"))
+   (:or (lambda* (a) (declare (ignore a)) "or")))
 
   ;;;;;;;;;;;; 2.4 ;;;;;;;;;;;;
   ;;
