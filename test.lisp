@@ -56,7 +56,10 @@
                 #:xnum->string
                 #:make-fixup-lexer
                 #:make-test-environment
-                #:xpath-lexer))
+                #:xpath-lexer)
+  (:export #:run-all-tests
+           #:*dom-builder*
+           #:*document-element*))
 
 (in-package #:xpath-test)
 
