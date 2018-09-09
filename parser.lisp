@@ -263,5 +263,7 @@
          (lambda (c)
            (unless (typep c 'xpath-error)
              (xpath-error "invalid XPath syntax: ~A in: ~A" c str)))))
-    (yacc:parse-with-lexer (make-fixup-lexer (xpath-lexer str))
+    (yacc:parse-with-lexer (make-fixup-lexer
+                            (xpath-lexer
+                             (coerce str 'runes:simple-rod)))
                            *xpath-parser*)))
