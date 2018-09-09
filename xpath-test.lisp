@@ -408,6 +408,10 @@
      ("a" (:local-name (:id "w")) "local-name(id('w'))")
      ("W|||X|||Y" (:id (:path (:child "main") (:child "b"))) "id(main/b)"))))
 
+(define-xpath-test test-simple-base-string
+  (assert-equal (first-node (evaluate (coerce "/foo" 'simple-base-string) *sample-xml*))
+                nil))
+
 (define-xpath-test test-with-namespaces-0               ;empty namespace need not be declared
   (eq (first-node (evaluate "/div" *sample-xml*))
       (funcall *document-element* *sample-xml*)))
