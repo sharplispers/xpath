@@ -116,7 +116,9 @@
    (:qname (lambda* (a) `(:qname ,(car a) ,(cdr a))))
    :ncname
    (operator-actually-ncname
-    (lambda* (a) (string-downcase (symbol-name a))))
+    (lambda* (a) (coerce
+                  (string-downcase (symbol-name a))
+                  'runes:simple-rod)))
    (:star (lambda* (nil) '*))
    (:node-type-or-function-name
     :lparen :rparen
