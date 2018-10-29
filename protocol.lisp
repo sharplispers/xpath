@@ -135,9 +135,6 @@
 
 ;; DOM mapping: pipes
 
-(define-default-method xpath-protocol:parent-node ((node dom:node))
-  (dom:parent-node node))
-
 (define-default-method xpath-protocol:child-pipe ((node dom:node))
   empty-pipe)
 
