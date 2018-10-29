@@ -37,14 +37,13 @@
                 #:pipe-of
                 #:force
                 #:get-node-text
-                #:xnum-p
+                #:xnum-p #:nan-p
                 #:+NAN+
                 #:with-float-traps-masked
                 #:compare-values
                 #:compare-numbers
                 #:make-node-set
                 #:parse-xnum
-                #:assert-float-equal*
                 #:xnum-/
                 #:xnum-*
                 #:xnum-+
@@ -94,6 +93,21 @@
 (defmacro assert* (&rest expressions)
   (maybe-progn
    (loop for expr in expressions collect `(assert ,expr))))
+
+(defmacro assert-float-equal (expected actual)
+  "Check whether two floating-point values are equal"
+  (with-gensyms (exp-value act-value)
+    `(let ((,exp-value ,expected)
+           (,act-value ,actual))
+       (unless (or (= ,exp-value ,act-value)
+                   (and (nan-p ,exp-value) (nan-p ,act-value)))
+         (error "TEST FAILED: ~s is expected to be~%~s~%but was~%~s"
+                ',actual ,exp-value ,act-value)))))
+
+(defmacro assert-float-equal* (&rest pairs)
+  (maybe-progn
+   (loop for (expected actual) on pairs by #'cddr
+         collect `(assert-float-equal ,expected ,actual))))
 
 (defmacro deftest (name &body body)
   `(progn

@@ -166,18 +166,3 @@
      ;; then we're supposed to *print* it as 0 after all.
      "0")
     (t (cl-ppcre:regex-replace "\\.?0*$" (string-replace (format nil "~f" xnum) "d" "e") ""))))
-
-(defmacro assert-float-equal (expected actual)
-  "Check whether two floating-point values are equal"
-  (with-gensyms (exp-value act-value)
-    `(let ((,exp-value ,expected)
-           (,act-value ,actual))
-      (unless (or (= ,exp-value ,act-value)
-		  (and (nan-p ,exp-value) (nan-p ,act-value)))
-        (error "TEST FAILED: ~s is expected to be~%~s~%but was~%~s"
-               ',actual ,exp-value ,act-value)))))
-
-(defmacro assert-float-equal* (&rest pairs)
-  (maybe-progn
-   (loop for (expected actual) on pairs by #'cddr
-         collect `(assert-float-equal ,expected ,actual))))
