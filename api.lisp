@@ -68,6 +68,26 @@
         while (not (pipe-empty-p pipe))
         collect (funcall func (pipe-head pipe))))
 
+(defmacro map-node-sets->list (func &rest node-sets)
+  "@arg[func]{a function}
+   @arg[node-sets]{@class{node-set}}
+   @return{a list}
+   @short{Calls @code{func} for each tuple of nodes on the list @code{node-sets} and conses up
+   a list of its return values}
+
+   The operation is performed lazily, i.e. if it's terminated via
+   a non-local exit it doesn't necessarily cause the XPath engine to find
+   out all nodes in echo @class{node-set} in @code{node-sets} internally."
+  (let ((pipe-syms (loop for node-set in node-sets
+                      collect (gensym "NODE"))))
+    `(loop ,@(loop for pipe-sym in pipe-syms
+                for node-set in node-sets
+                append `(for ,pipe-sym = (xpath::pipe-of ,node-set) then (xpath::pipe-tail ,pipe-sym)))
+        while (not (or ,@(loop for pipe-sym in pipe-syms
+                            collect `(xpath::pipe-empty-p ,pipe-sym))))
+        collect (funcall ,func ,@(loop for pipe-sym in pipe-syms
+                                 collect `(xpath::pipe-head ,pipe-sym))))))
+
 (defmacro do-node-set ((var node-set &optional result) &body body)
   "@arg[var]{symbol, a variable name}
    @arg[node-set]{a @class{node-set}}
