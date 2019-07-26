@@ -9,7 +9,7 @@
   :maintainer "Sharp Lispers <sharplispers@googlegroups.com>"
 
   :version "0.1"
-  :depends-on ("cxml" "parse-number" "cl-ppcre" "yacc")
+  :depends-on ("cxml" "cxml-stp" "parse-number" "cl-ppcre" "yacc")
 
   :serial t
   :components ((:file "package")
